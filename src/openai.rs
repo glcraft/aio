@@ -1,25 +1,13 @@
-use std::borrow::Cow;
+use serde::{Serialize, Deserialize};
 
-use serde::{Serialize, Serializer};
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Role {
     User,
     Assistant,
     System
 }
 
-impl Serialize for Role {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            Role::User => serializer.serialize_str("user"),
-            Role::Assistant => serializer.serialize_str("assistant"),
-            Role::System => serializer.serialize_str("system"),
-        }
-    }
-}
 #[derive(Debug, Serialize)]
 struct Message {
     role: Role,
