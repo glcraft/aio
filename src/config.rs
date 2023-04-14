@@ -1,7 +1,6 @@
-use lazy_static::lazy_static;
-use regex::{Regex, Replacer};
+use regex::Regex;
 use serde::Deserialize;
-use crate::openai::{ChatRequestParameters, Role, Message};
+use crate::openai::{ChatRequestParameters, Message};
 use crate::arguments as args;
 
 #[derive(Debug, Deserialize)]
@@ -16,9 +15,9 @@ pub enum ConfigError {
 }
 
 impl Config {
-    pub fn load(args: &args::Args) -> Result<Config, ConfigError> {
+    pub fn load() -> Result<Config, ConfigError> {
         let config = std::fs::read_to_string("config.yml").map_err(ConfigError::Io)?;
-        let mut config: Config = serde_yaml::from_str(&config).map_err(ConfigError::Yaml)?;
+        let config: Config = serde_yaml::from_str(&config).map_err(ConfigError::Yaml)?;
         
         Ok(config)
     }

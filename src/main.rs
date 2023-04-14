@@ -15,7 +15,7 @@ use tokio_stream::StreamExt;
 #[tokio::main]
 async fn main() -> Result<(), &'static str> {
     let args = args::Args::parse();
-    let config = config::Config::load(&args).expect("Failed to load config");
+    let config = config::Config::load().expect("Failed to load config");
     if args.prompt == "?" {
         println!("Available prompts:");
         for prompt in config.prompts {
