@@ -11,47 +11,6 @@ use serde::{Serialize, Deserialize, de::Error};
 use tokio_stream::StreamExt;
 use tokio::io::AsyncRead;
 
-
-
-struct HTTPRequest<Body: Serialize> {
-    method: String,
-    path: String,
-    host: String,
-    headers: Vec<(String, String)>,
-    body: Body,
-}
-
-impl<Body: Serialize> HTTPRequest<Body> {
-    fn new(method: String, path: String, host: String, body: Body) -> Self {
-        Self {
-            method,
-            path,
-            host,
-            headers: Vec::new(),
-            body,
-        }
-    }
-    fn add_header(mut self, key: String, value: String) -> Self{
-        self.headers.push((key, value));
-        self
-    }
-    fn to_string(&self) -> String {
-        let mut request = format!("{} {} HTTP/1.1\r", self.method, self.path);
-        request.push_str(&format!("Host: {}\r", self.host));
-        for (key, value) in &self.headers {
-            request.push_str(&format!("{}: {}\r", key, value));
-        }
-        let body = serde_json::to_string(&self.body).unwrap();
-        request.push_str(&format!("Content-Length: {}\r", body.len()));
-        request.push_str("Content-Type: application/json\r");
-        request.push_str("Accept: application/json\r");
-        request.push_str("User-Agent: curl/7.87.0\r");
-        request.push_str("\r");
-        request.push_str(&serde_json::to_string(&self.body).unwrap());
-        request
-    }
-}
-
 fn main() {
     let stream = std::fs::read_to_string("example.txt").expect("Failed to read file");
     let result = stream
