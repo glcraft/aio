@@ -5,9 +5,11 @@ use std::{
     io::{
         Read, 
         Write
-    }
+    }, str::FromStr
 };
-use serde::Serialize;
+use serde::{Serialize, Deserialize, de::Error};
+use tokio_stream::StreamExt;
+use tokio::io::AsyncRead;
 
 
 
@@ -50,32 +52,55 @@ impl<Body: Serialize> HTTPRequest<Body> {
     }
 }
 
-fn main() -> std::io::Result<()> {
-    return Ok(());
+fn main() {
+    let stream = std::fs::read_to_string("example.txt").expect("Failed to read file");
+    let result = stream
+        .split("\n\n")
+        .filter(|item| !item.is_empty())
+        .map(openai::ChatResponse::from_str)
+        .filter_map(|item| {
+            match item {
+                Ok(item) => Some(item),
+                Err(e) => {
+                    if cfg!(debug_assertions) {
+                        println!("Error: {:?}", e); 
+                    }
+                    None
+                },
+            }
+        })
+        .for_each(|item| print!("{}", item));
+
+
+}
+// #[tokio::main]
+async fn main2() -> std::io::Result<()> {
     let openai_api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set");
     // Send a request
     let chat_request = openai::ChatRequest::new("gpt-3.5-turbo".to_string())
         .add_message(openai::Role::System, "You are ChatGPT, a powerful conversational chatbot. Answer to my questions in informative way.".to_string())
-        .add_message(openai::Role::User, "Hi, how are you ?".to_string());
+        .add_message(openai::Role::User, "Hi, how are you ?".to_string())
+        .into_stream();
+
+    let client = reqwest::Client::new();
+    let mut stream = client.post("https://api.openai.com/v1/chat/completions")
+        .header("User-Agent", "openai-rs/1.0")
+        .header("Authorization", format!("Bearer {}", openai_api_key))
+        .json(&chat_request)
+        .send()
+        .await
+        .expect("Failed to send request")
+        .bytes_stream();
     
-    let request = HTTPRequest::new(
-        "POST".to_string(),
-        "/v1/chat/completions".to_string(),
-        "api.openai.com".to_string(),
-        chat_request
-    ).add_header("Authorization".to_string(), format!("Bearer {}", openai_api_key));
-    let request = request.to_string();
-    println!("Request:\n{}\n\n", request.replace("\r", "\n"));
-    //write the request to a file
-    std::fs::write("request.txt", &request).expect("Failed to write request to file");
-    // return Ok(());
-    
-    // Connect to OpenAI API
-    let mut stream = TcpStream::connect("api.openai.com:80").expect("Failed to connect to OpenAI API");
-    stream.write(request.as_bytes())?;
-    let mut buf = [0; 512];
-    stream.read(&mut buf)?;
-    println!("Response:\n{}", String::from_utf8_lossy(&buf[..]));
-    println!("Done!");
+    // while let Some(item) = stream.next()
+    //     .map(|item| item.ok())
+    //     .flatten()
+    //     .map(|item| String::from_utf8_lossy(item.as_ref())
+    //         .split("\n\n")
+    //         .map(|item| String::from(item))
+    //         .map(|item| serde_json::from_str::<openai::ChatResponse>(&item))
+    //         .collect::<Vec<_>>()) {
+    //         println!("Chunk: {:?}", item)
+    // }
     Ok(())
 }

@@ -1,4 +1,6 @@
-use serde::{Serialize, Deserialize};
+use std::str::FromStr;
+
+use serde::{Serialize, Deserialize, de::Error};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -6,6 +8,16 @@ pub enum Role {
     User,
     Assistant,
     System
+}
+
+impl std::fmt::Display for Role {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Role::User => write!(f, "User"),
+            Role::Assistant => write!(f, "Assistant"),
+            Role::System => write!(f, "System"),
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -52,6 +64,10 @@ impl ChatRequest {
         self.messages.push(Message { role, content: content.into() });
         self
     }
+    pub fn into_stream(mut self) -> Self {
+        self.stream = Some(true);
+        self
+    }
 }
 impl Default for ChatRequest {
     fn default() -> Self {
@@ -69,6 +85,73 @@ impl Default for ChatRequest {
             logprobs: None,
             echo: None,
             stop: None,
+        }
+    }
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct Delta {
+    pub role: Option<Role>,
+    pub content: Option<String>
+}
+#[derive(Debug, Deserialize)]
+pub struct Choice {
+    pub delta: Delta,
+    pub index: u32,
+    pub finish_reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum ChatResponse {
+    Message{
+        id: String,
+        object: String,
+        created: u64,
+        model: String,
+        choices: Vec<Choice>,
+    },
+    #[serde(rename = "[DONE]")]
+    Done,
+}
+
+impl std::fmt::Display for ChatResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            ChatResponse::Message{choices, ..} => {
+                if choices.len() == 0 {
+                    return Ok(());
+                }
+                let choice = &choices[0];
+                match (&choice.delta.role, &choice.delta.content) {
+                    (Some(role), Some(content)) => write!(f, "\n{}: {}", role, content),
+                    (Some(role), None) => write!(f, "\n{}: ", role),
+                    (None, Some(content)) => write!(f, "{}", content),
+                    (None, None) => Ok(()),
+                }
+            },
+            ChatResponse::Done => {
+                if cfg!(feature = "debug") {
+                    write!(f, "\nStream finished")
+                } else {
+                    Ok(())
+                }
+            }
+        }
+    }
+}
+
+impl FromStr for ChatResponse {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s == "data: [DONE]" {
+            Ok(ChatResponse::Done)
+        } else if s.starts_with("data: ") {
+            serde_json::from_str::<ChatResponse>(&s[5..])
+        } else {
+            Err(serde_json::Error::custom("Not a data line"))
         }
     }
 }
