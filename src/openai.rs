@@ -20,38 +20,43 @@ impl std::fmt::Display for Role {
     }
 }
 
-#[derive(Debug, Serialize)]
-struct Message {
-    role: Role,
-    content: String,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Message {
+    pub role: Role,
+    pub content: String,
+}
+#[derive(Debug, Default, Serialize)]
+pub struct ChatRequestParameters {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_p: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub presence_penalty: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub frequency_penalty: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub best_of: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub n: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stream: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub logprobs: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub echo: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stop: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ChatRequest {
     model: String,
     messages: Vec<Message>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    max_tokens: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    temperature: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    top_p: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    presence_penalty: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    frequency_penalty: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    best_of: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    n: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    stream: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    logprobs: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    echo: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    stop: Option<String>,
+    #[serde(flatten)]
+    parameters: ChatRequestParameters,
 }
 impl ChatRequest {
     pub fn new(model: String) -> Self {
@@ -64,8 +69,16 @@ impl ChatRequest {
         self.messages.push(Message { role, content: content.into() });
         self
     }
+    pub fn add_messages(mut self, messages: Vec<Message>) -> Self {
+        self.messages.extend(messages);
+        self
+    }
+    pub fn set_parameters(mut self, parameters: ChatRequestParameters) -> Self {
+        self.parameters = parameters;
+        self
+    }
     pub fn into_stream(mut self) -> Self {
-        self.stream = Some(true);
+        self.parameters.stream = Some(true);
         self
     }
 }
@@ -74,17 +87,7 @@ impl Default for ChatRequest {
         Self {
             model: "gpt-3.5-turbo".to_string(),
             messages: Vec::new(),
-            max_tokens: None,
-            temperature: None,
-            top_p: None,
-            presence_penalty: None,
-            frequency_penalty: None,
-            best_of: None,
-            n: None,
-            stream: None,
-            logprobs: None,
-            echo: None,
-            stop: None,
+            parameters: Default::default()
         }
     }
 }

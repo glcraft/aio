@@ -1,4 +1,8 @@
-mod openai;
+pub mod openai;
+pub mod arguments;
+mod config;
+use arguments as args;
+use clap::Parser;
 // mod http2;
 use std::{
     io::{
@@ -9,12 +13,31 @@ use std::{
 use tokio_stream::StreamExt;
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
-    let openai_api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set");
+async fn main() -> Result<(), &'static str> {
+    let args = args::Args::parse();
+    let config = config::Config::load(&args).expect("Failed to load config");
+    if args.prompt == "?" {
+        println!("Available prompts:");
+        for prompt in config.prompts {
+            println!("  - {}", prompt.name);
+        }
+        return Ok(());
+    }
+    let prompt = match config.prompts.into_iter()
+        .find(|prompt| prompt.name == args.prompt) {
+            Some(prompt) => prompt,
+            None => {
+                return Err("Prompt not found");
+            }
+        }.format_messages(&args);
+
+    let openai_api_key = config.api_key
+        .or_else(|| std::env::var("OPENAI_API_KEY").ok())
+        .expect("OPENAI_API_KEY not set");
     // Send a request
     let chat_request = openai::ChatRequest::new("gpt-3.5-turbo".to_string())
-        .add_message(openai::Role::System, "You are ChatGPT, a powerful conversational chatbot. Answer to my questions in informative way.".to_string())
-        .add_message(openai::Role::User, "Hi, how are you ?".to_string())
+        .add_messages(prompt.messages)
+        .set_parameters(prompt.parameters.into())
         .into_stream();
 
     let client = reqwest::Client::new();
