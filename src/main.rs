@@ -1,5 +1,6 @@
 pub mod openai;
 pub mod arguments;
+mod printer;
 mod config;
 use arguments as args;
 use clap::Parser;
@@ -14,6 +15,22 @@ use tokio_stream::StreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), &'static str> {
+    // let doc_markdown = std::fs::read_to_string("test.md").expect("Failed to read test.md");
+    // std::fs::write("test_md_tokenized.txt", format!("{:#?}", markdown::tokenize(&doc_markdown))).expect("Failed to write to file");
+    crossterm::queue!(std::io::stdout(), crossterm::style::Print("Hello")).map_err(|_| "Failed to write to stdout")?;
+    // crossterm::queue!(std::io::stdout(), crossterm::cursor::MoveLeft(7)).map_err(|_| "Failed to write to stdout")?;
+    crossterm::queue!(std::io::stdout(), crossterm::style::Print("World")).map_err(|_| "Failed to write to stdout")?;
+    return Ok(());
+    let mut prt = printer::MarkdownPrinter::new();
+    let doc_markdown = std::fs::read_to_string("test.md").expect("Failed to read test.md");
+    doc_markdown
+        .split_inclusive(|c| !char::is_alphanumeric(c))
+        .for_each(|s| {
+            prt.push(s);
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        });
+    prt.flush();
+    return Ok(());
     let args = args::Args::parse();
     let config = config::Config::load().expect("Failed to load config");
     if args.prompt == "?" {
