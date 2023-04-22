@@ -1,6 +1,6 @@
 pub mod openai;
 pub mod arguments;
-mod printer;
+mod markdown;
 mod config;
 use arguments as args;
 use clap::Parser;
@@ -21,7 +21,7 @@ async fn main() -> Result<(), &'static str> {
     // crossterm::queue!(std::io::stdout(), crossterm::cursor::MoveLeft(7)).map_err(|_| "Failed to write to stdout")?;
     crossterm::queue!(std::io::stdout(), crossterm::style::Print("World")).map_err(|_| "Failed to write to stdout")?;
     return Ok(());
-    let mut prt = printer::MarkdownPrinter::new();
+    let mut prt = markdown::Parser::new();
     let doc_markdown = std::fs::read_to_string("test.md").expect("Failed to read test.md");
     doc_markdown
         .split_inclusive(|c| !char::is_alphanumeric(c))
