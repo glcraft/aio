@@ -1,6 +1,6 @@
 use super::StyleType;
-use std::io::{stdout, Write};
 use super::Renderer;
+use super::renderer;
 
 #[derive(Debug)]
 struct CodeBlock {
@@ -32,17 +32,20 @@ impl<R: Renderer> Parser<R> {
             renderer,
         }
     }
-    pub fn push(&mut self, text: &str) {
-        text.chars().for_each(|c| self.analyse_char(c));
-        self.print();
-        stdout().flush().expect("Failed to flush stdout");
+    pub fn push(&mut self, text: &str) -> renderer::Result<(), R::BackendErrorType> {
+        match text.chars().find_map(|c| self.analyse_char(c).err()) {
+            Some(err) => Err(err),
+            None => Ok(())
+        }?;
+        self.print()?;
+        self.renderer.flush()
     }
-    fn analyse_char(&mut self, c: char) {
+    fn analyse_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
         match c {
             '\n' => {
-                self.apply_modifier(c);
-                self.flush(false);
-                self.renderer.newline();
+                self.apply_modifier(c)?;
+                self.flush(false)?;
+                self.renderer.newline()
             },
             c if self.is_inline_code() => self.analyse_code_char(c),
             '*' | '_' | '`' => {
@@ -59,31 +62,33 @@ impl<R: Renderer> Parser<R> {
                     } 
                     None => self.current_modifier = Some(c.to_string())
                 };
+                Ok(())
             }
             c => {
-                self.apply_modifier(c);
+                self.apply_modifier(c)?;
                 self.current_line.push(c);
                 self.previous_char = Some(c);
+                Ok(())
             }
         }
-        
     }
-    fn analyse_code_char(&mut self, c: char) {
+    fn analyse_code_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
         match (c, self.previous_char) {
             ('`', Some(prevc)) if prevc.is_whitespace() => {
                 self.current_line.push(c);
                 self.previous_char = Some(c);
             },
-            ('`', _) => self.pop_style(),
+            ('`', _) => self.pop_style()?,
             _ => {
                 self.current_line.push(c);
                 self.previous_char = Some(c);
             },
         }
+        Ok(())
     }
-    fn apply_modifier(&mut self, current_char: char) {
+    fn apply_modifier(&mut self, current_char: char) -> renderer::Result<(), R::BackendErrorType> {
         if let None = &self.current_modifier {
-            return;
+            return Ok(());
         }
 
         let modifier = self.current_modifier.as_ref().unwrap().clone();
@@ -94,11 +99,11 @@ impl<R: Renderer> Parser<R> {
                 if self.previous_char.map(char::is_whitespace).unwrap_or(false) {
                     self.current_line.push_str(&modifier);
                 } else {
-                    self.pop_style()
+                    self.pop_style()?
                 }
             },
             _ if !current_char.is_whitespace() => {
-                self.print();
+                self.print()?;
                 self.styles.push(style);
                 match self.renderer.apply_style(style) {
                     Ok(_) => Ok(()),
@@ -107,16 +112,17 @@ impl<R: Renderer> Parser<R> {
                         Ok(())
                     },
                     e => e,
-                }.expect("Failed to apply style");
+                }?;
             }
             _ => self.current_line.push_str(&modifier)
         }
         self.current_modifier = None;
+        Ok(())
     }
-    fn pop_style(&mut self) {
-        self.print();
+    fn pop_style(&mut self) -> renderer::Result<(), R::BackendErrorType> {
+        self.print()?;
         self.styles.pop();
-        self.renderer.reset_style().expect("Failed to reset style");
+        self.renderer.reset_style()?;
         self.styles.iter()
             .map(|s| {
                 match self.renderer.apply_style(*s) {
@@ -124,27 +130,30 @@ impl<R: Renderer> Parser<R> {
                     Err(super::renderer::Error::NotSupported) => self.renderer.print_text(self.current_modifier.as_ref().unwrap()),
                     Err(e) => Err(e),
                 }
-            }).fold(Ok(()), Result::and).expect("Failed to apply style");
+            }).fold(Ok(()), Result::and)
     }
     fn is_inline_code(&self) -> bool {
         self.styles.last() == Some(&StyleType::Code)
     }
     
-    fn print(&mut self) {
-        self.renderer.print_text(&self.current_line);
+    fn print(&mut self) -> renderer::Result<(), R::BackendErrorType> {
+        self.renderer.print_text(&self.current_line)?;
         self.current_line.clear();
+        Ok(())
     }
-    fn flush(&mut self, flush_io: bool) {
-        self.print();
+    fn flush(&mut self, flush_io: bool) -> renderer::Result<(), R::BackendErrorType> {
+        self.print()?;
         self.current_modifier = None;
         self.styles.clear();
-        self.renderer.reset_style().expect("Failed to reset style");
+        self.renderer.reset_style()?;
         if flush_io {
-            stdout().flush().expect("Failed to flush stdout");
+            self.renderer.flush()
+        } else {
+            Ok(())
         }
     }
-    pub fn end_of_document(&mut self) {
-        self.flush(true);
+    pub fn end_of_document(&mut self) -> renderer::Result<(), R::BackendErrorType> {
+        self.flush(true)
     }
     
 }

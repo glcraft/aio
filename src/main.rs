@@ -22,10 +22,10 @@ async fn main() -> Result<(), &'static str> {
     doc_markdown
         .split_inclusive(|c| !char::is_alphanumeric(c))
         .for_each(|s| {
-            md_parser.push(s);
+            md_parser.push(s).expect("Failed to parse");
             std::thread::sleep(std::time::Duration::from_millis(50));
         });
-    md_parser.end_of_document();
+    md_parser.end_of_document().expect("Failed to parse");
     return Ok(());
 
     let args = args::Args::parse();
@@ -85,7 +85,9 @@ async fn main() -> Result<(), &'static str> {
                 })
                 .for_each(|item| {
                     // print!("{}", item);
-                    md_parser.push(&item.to_string());
+                    if let Err(e) = md_parser.push(&item.to_string()) {
+                        writeln!(std::io::stderr(), "Error: {:?}", e).expect("Failed to write to stderr");
+                    }
                     if let Err(e) = std::io::stdout().flush() {
                         if cfg!(debug_assertions) {
                             println!("Error: {:?}", e); 

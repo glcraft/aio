@@ -1,5 +1,5 @@
 use crossterm::{style::*, terminal::{Clear, ClearType}, queue, cursor::MoveToColumn};
-use std::io::stdout;
+use std::io::{stdout, Write};
 use super::StyleType;
 
 #[derive(Debug)]
@@ -7,17 +7,17 @@ pub enum Error<BackendErrorType>
 where
     BackendErrorType: std::fmt::Debug,
 {
-    IoError(std::io::Error),
     BackendError(BackendErrorType),
     NotSupported,
 }
-type Result<T, E> = std::result::Result<T, Error<E>>;
+pub type Result<T, E> = std::result::Result<T, Error<E>>;
 pub trait Renderer {
     type BackendErrorType: std::fmt::Debug;
     fn apply_style(&mut self, style: StyleType) -> Result<(), Self::BackendErrorType>;
     fn reset_style(&mut self) -> Result<(), Self::BackendErrorType>;
     fn print_text(&mut self, text: &str) -> Result<(), Self::BackendErrorType>;
     fn newline(&mut self) -> Result<(), Self::BackendErrorType>;
+    fn flush(&mut self) -> Result<(), Self::BackendErrorType>;
 }
 
 pub struct TerminalRenderer;
@@ -47,5 +47,8 @@ impl Renderer for TerminalRenderer {
     }
     fn newline(&mut self) -> Result<(), Self::BackendErrorType> {
         queue!(stdout(), Print('\n')).map_err(Error::BackendError)
+    }
+    fn flush(&mut self) -> Result<(), Self::BackendErrorType> {
+        stdout().flush().map_err(Error::BackendError)
     }
 }
