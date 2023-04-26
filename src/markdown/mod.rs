@@ -2,7 +2,7 @@ mod parser;
 mod renderer;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum StyleType {
+pub enum InlineStyleType {
     Bold,
     Italic,
     BoldItalic,
@@ -10,27 +10,26 @@ pub enum StyleType {
     CodeBlock,
 }
 
-impl<S: AsRef<str>> From<S> for StyleType {
+
+impl<S: AsRef<str>> From<S> for InlineStyleType {
     fn from(s: S) -> Self {
         match s.as_ref() {
-            "*" | "_" => StyleType::Italic,
-            "**" | "__" => StyleType::Bold,
-            "***" | "___" => StyleType::BoldItalic,
-            "`" => StyleType::Code,
-            "```" => StyleType::CodeBlock,
+            "*" | "_" => InlineStyleType::Italic,
+            "**" | "__" => InlineStyleType::Bold,
+            "***" | "___" => InlineStyleType::BoldItalic,
+            "`" => InlineStyleType::Code,
             _ => panic!("modifier not recognized")
         }
     }
 }
 
-impl From<StyleType> for &'static str {
-    fn from(s: StyleType) -> Self {
+impl From<InlineStyleType> for &'static str {
+    fn from(s: InlineStyleType) -> Self {
         match s {
-            StyleType::Italic => "*",
-            StyleType::Bold => "**",
-            StyleType::BoldItalic => "***",
-            StyleType::Code => "`",
-            StyleType::CodeBlock => "```",
+            InlineStyleType::Italic => "*",
+            InlineStyleType::Bold => "**",
+            InlineStyleType::BoldItalic => "***",
+            InlineStyleType::Code => "`",
         }
     }
 }

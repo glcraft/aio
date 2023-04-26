@@ -1,4 +1,4 @@
-use super::StyleType;
+use super::InlineStyleType;
 use super::Renderer;
 use super::renderer;
 
@@ -13,7 +13,7 @@ struct CodeBlock {
 pub struct Parser<R: Renderer> {
     current_line: String,
     // current_format: Format,
-    styles: Vec<StyleType>,
+    styles: Vec<InlineStyleType>,
     code_block: Option<CodeBlock>,
     previous_char: Option<char>,
     current_modifier: Option<String>,
@@ -94,7 +94,6 @@ impl<R: Renderer> Parser<R> {
         let modifier = self.current_modifier.as_ref().unwrap().clone();
         let style = (&modifier).into();
         match self.styles.last() {
-            Some(StyleType::CodeBlock) => self.current_line.push_str(&modifier),
             Some(s) if s == &style => {
                 if self.previous_char.map(char::is_whitespace).unwrap_or(false) {
                     self.current_line.push_str(&modifier);
@@ -133,7 +132,7 @@ impl<R: Renderer> Parser<R> {
             }).fold(Ok(()), Result::and)
     }
     fn is_inline_code(&self) -> bool {
-        self.styles.last() == Some(&StyleType::Code)
+        self.styles.last() == Some(&InlineStyleType::Code)
     }
     
     fn print(&mut self) -> renderer::Result<(), R::BackendErrorType> {
