@@ -7,7 +7,13 @@ pub enum InlineStyleType {
     Italic,
     BoldItalic,
     Code,
+}
+
+pub enum BlockType {
+    Heading(u8),
     CodeBlock,
+    Quote,
+    ListItem(String),
 }
 
 

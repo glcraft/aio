@@ -17,3 +17,4 @@ regex = "1.7.3"
 crossterm = "0.26.1"
 lazy_static = "1.4.0"
 markdown = "0.3.0"
+smartstring = { version = "1.0", features = ["serde"] }

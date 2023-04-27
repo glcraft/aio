@@ -1,6 +1,7 @@
 use super::InlineStyleType;
 use super::Renderer;
 use super::renderer;
+use smartstring::alias::String;
 
 #[derive(Debug)]
 struct CodeBlock {
@@ -8,6 +9,12 @@ struct CodeBlock {
     line: u32,
 }
 
+#[inline]
+fn char_to_string(c: char) -> String {
+    let mut s = String::new();
+    s.push(c);
+    s
+}
 
 #[derive(Debug)]
 pub struct Parser<R: Renderer> {
@@ -56,11 +63,11 @@ impl<R: Renderer> Parser<R> {
                             None => unreachable!("modifier should not be empty at this point"),
                             _ => {
                                 self.current_line.push_str(&modifier);
-                                self.current_modifier = Some(c.to_string());
+                                self.current_modifier = Some(char_to_string(c));
                             },
                         }
                     } 
-                    None => self.current_modifier = Some(c.to_string())
+                    None => self.current_modifier = Some(char_to_string(c))
                 };
                 Ok(())
             }

@@ -2,8 +2,10 @@ pub mod openai;
 pub mod arguments;
 mod markdown;
 mod config;
+
 use arguments as args;
 use clap::Parser;
+use smartstring::alias::String;
 // mod http2;
 use std::{
     io::{
