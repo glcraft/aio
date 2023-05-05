@@ -1,12 +1,13 @@
-use super::InlineStyleType;
+use super::StyleKind;
 use super::Renderer;
 use super::renderer;
+use serde::__private::de::IdentifierDeserializer;
 use smartstring::alias::String;
-
-#[derive(Debug)]
-struct CodeBlock {
-    language: Option<String>,
-    line: u32,
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ParserState {
+    Normal,
+    CodeBlock,
+    InlineCode
 }
 
 #[inline]
@@ -18,12 +19,13 @@ fn char_to_string(c: char) -> String {
 
 #[derive(Debug)]
 pub struct Parser<R: Renderer> {
-    current_line: String,
+    // current_text: String,
     // current_format: Format,
-    styles: Vec<InlineStyleType>,
-    code_block: Option<CodeBlock>,
+    // styles: Vec<StyleKind>,
+    padding: Option<String>,
+    current_state: ParserState,
     previous_char: Option<char>,
-    current_modifier: Option<String>,
+    current_token: String,
 
     renderer: R,
 }
@@ -31,132 +33,121 @@ pub struct Parser<R: Renderer> {
 impl<R: Renderer> Parser<R> {
     pub fn new(renderer: R) -> Self {
         Self {
-            current_line: String::new(),
-            styles: Vec::new(),
-            code_block: None,
+            padding: None,
+            current_state: ParserState::Normal,
             previous_char: None,
-            current_modifier: None,
+            current_token: String::new(),
             renderer,
         }
     }
     pub fn push(&mut self, text: &str) -> renderer::Result<(), R::BackendErrorType> {
-        match text.chars().find_map(|c| self.analyse_char(c).err()) {
+        match text.chars().find_map(|c| self.analyse_common_char(c).err()) {
             Some(err) => Err(err),
             None => Ok(())
         }?;
         self.print()?;
         self.renderer.flush()
     }
-    fn analyse_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
-        match c {
-            '\n' => {
-                self.apply_modifier(c)?;
-                self.flush(false)?;
-                self.renderer.newline()
-            },
-            c if self.is_inline_code() => self.analyse_code_char(c),
-            '*' | '_' | '`' => {
-                match &mut self.current_modifier {
-                    Some(ref mut modifier) => {
-                        match modifier.chars().last() {
-                            Some(cmod) if cmod == c => modifier.push(c),
-                            None => unreachable!("modifier should not be empty at this point"),
-                            _ => {
-                                self.current_line.push_str(&modifier);
-                                self.current_modifier = Some(char_to_string(c));
-                            },
-                        }
-                    } 
-                    None => self.current_modifier = Some(char_to_string(c))
-                };
-                Ok(())
-            }
-            c => {
-                self.apply_modifier(c)?;
-                self.current_line.push(c);
-                self.previous_char = Some(c);
-                Ok(())
-            }
+    fn analyse_common_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
+        match self.current_state {
+            ParserState::CodeBlock => self.analyse_code_block_char(c),
+            ParserState::InlineCode => self.analyse_code_char(c),
+            ParserState::Normal => self.analyse_normal_char(c),
         }
     }
     fn analyse_code_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
         match (c, self.previous_char) {
             ('`', Some(prevc)) if prevc.is_whitespace() => {
-                self.current_line.push(c);
+                self.current_token.push(c);
                 self.previous_char = Some(c);
             },
-            ('`', _) => self.pop_style()?,
+            ('`', _) => {
+                self.renderer.print_text(&self.current_token)?;
+                self.renderer.pop_style()?;
+                self.current_token.clear();
+                self.current_state = ParserState::Normal;
+            },
             _ => {
-                self.current_line.push(c);
+                self.current_token.push(c);
                 self.previous_char = Some(c);
             },
         }
         Ok(())
     }
-    fn apply_modifier(&mut self, current_char: char) -> renderer::Result<(), R::BackendErrorType> {
-        if let None = &self.current_modifier {
-            return Ok(());
-        }
-
-        let modifier = self.current_modifier.as_ref().unwrap().clone();
-        let style = (&modifier).into();
-        match self.styles.last() {
-            Some(s) if s == &style => {
-                if self.previous_char.map(char::is_whitespace).unwrap_or(false) {
-                    self.current_line.push_str(&modifier);
-                } else {
-                    self.pop_style()?
-                }
+    fn analyse_code_block_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
+        Ok(())
+    }
+    fn analyse_normal_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
+        match c {
+            '\n' => {
+                self.renderer.newline()?;
+                self.padding = Some(String::new());
+                self.current_token.clear();
+                Ok(())
             },
-            _ if !current_char.is_whitespace() => {
-                self.print()?;
-                self.styles.push(style);
-                match self.renderer.apply_style(style) {
-                    Ok(_) => Ok(()),
-                    Err(super::renderer::Error::NotSupported) => {
-                        self.current_line.push_str(&modifier);
-                        Ok(())
-                    },
-                    e => e,
-                }?;
+            // ' ' if self.padding.is_some() => {
+            //     self.padding.as_mut().unwrap().push(c);
+            //     Ok(())
+            // },
+            // '#' if self.padding.map(String::is_empty) == Some(true) => {
+            //     self.renderer
+            //     self.current_token.push(c);
+            //     Ok(())
+            // },
+            '*' | '_' | '`' => {
+                let last_char_token = self.current_token.chars().last();
+                if last_char_token != Some(c) && !self.current_token.is_empty() {
+                    self.print()?;
+                }
+                self.current_token.push(c);
+                Ok(())
             }
-            _ => self.current_line.push_str(&modifier)
+            c => {
+                self.apply_modifier(Some(c))?;
+                self.current_token.push(c);
+                self.previous_char = Some(c);
+                Ok(())
+            }
         }
-        self.current_modifier = None;
+    }
+
+    fn apply_modifier(&mut self, current_char: Option<char>) -> renderer::Result<(), R::BackendErrorType> {
+        let left = self.previous_char.map(char::is_whitespace);
+        let right = current_char.map(char::is_whitespace);
+
+        match (left, right) {
+            (None | Some(true), Some(false)) => { // Enter style
+
+            }
+            (Some(false), Some(true)) => { // Exit style
+
+            }
+            (_,_) => {
+                self.current_token.push_str(&self.current_token);
+                if let Some(c) = current_char {
+                    self.current_token.push(c);
+                }
+            }
+        }
         Ok(())
     }
     fn pop_style(&mut self) -> renderer::Result<(), R::BackendErrorType> {
         self.print()?;
-        self.styles.pop();
-        self.renderer.reset_style()?;
-        self.styles.iter()
-            .map(|s| {
-                match self.renderer.apply_style(*s) {
-                    Ok(_) => Ok(()),
-                    Err(super::renderer::Error::NotSupported) => self.renderer.print_text(self.current_modifier.as_ref().unwrap()),
-                    Err(e) => Err(e),
-                }
-            }).fold(Ok(()), Result::and)
+        self.renderer.pop_style()
     }
-    fn is_inline_code(&self) -> bool {
-        self.styles.last() == Some(&InlineStyleType::Code)
+    fn is_normal(&self) -> bool {
+        self.current_state == ParserState::Normal
     }
     
     fn print(&mut self) -> renderer::Result<(), R::BackendErrorType> {
-        self.renderer.print_text(&self.current_line)?;
-        self.current_line.clear();
+        if !self.current_token.is_empty() {
+            self.renderer.print_text(&self.current_token)?;
+            self.current_token.clear();
+        }
         Ok(())
     }
     fn flush(&mut self, flush_io: bool) -> renderer::Result<(), R::BackendErrorType> {
-        self.print()?;
-        self.current_modifier = None;
-        self.styles.clear();
-        self.renderer.reset_style()?;
-        if flush_io {
-            self.renderer.flush()
-        } else {
-            Ok(())
-        }
+        self.print()
     }
     pub fn end_of_document(&mut self) -> renderer::Result<(), R::BackendErrorType> {
         self.flush(true)
