@@ -1,7 +1,6 @@
 use super::StyleKind;
 use super::Renderer;
 use super::renderer;
-use serde::__private::de::IdentifierDeserializer;
 use smartstring::alias::String;
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum ParserState {
@@ -19,13 +18,13 @@ fn char_to_string(c: char) -> String {
 
 #[derive(Debug)]
 pub struct Parser<R: Renderer> {
-    // current_text: String,
+    current_text: String,
     // current_format: Format,
     // styles: Vec<StyleKind>,
     padding: Option<String>,
     current_state: ParserState,
     previous_char: Option<char>,
-    current_token: String,
+    current_token: Option<String>,
 
     renderer: R,
 }
@@ -36,7 +35,8 @@ impl<R: Renderer> Parser<R> {
             padding: None,
             current_state: ParserState::Normal,
             previous_char: None,
-            current_token: String::new(),
+            current_text: String::new(),
+            current_token: None,
             renderer,
         }
     }
@@ -58,17 +58,17 @@ impl<R: Renderer> Parser<R> {
     fn analyse_code_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
         match (c, self.previous_char) {
             ('`', Some(prevc)) if prevc.is_whitespace() => {
-                self.current_token.push(c);
+                self.current_text.push(c);
                 self.previous_char = Some(c);
             },
             ('`', _) => {
-                self.renderer.print_text(&self.current_token)?;
+                self.renderer.print_text(&self.current_text)?;
                 self.renderer.pop_style()?;
-                self.current_token.clear();
+                self.current_text.clear();
                 self.current_state = ParserState::Normal;
             },
             _ => {
-                self.current_token.push(c);
+                self.current_text.push(c);
                 self.previous_char = Some(c);
             },
         }
@@ -82,8 +82,7 @@ impl<R: Renderer> Parser<R> {
             '\n' => {
                 self.renderer.newline()?;
                 self.padding = Some(String::new());
-                self.current_token.clear();
-                Ok(())
+                self.current_token = None;
             },
             // ' ' if self.padding.is_some() => {
             //     self.padding.as_mut().unwrap().push(c);
@@ -95,23 +94,31 @@ impl<R: Renderer> Parser<R> {
             //     Ok(())
             // },
             '*' | '_' | '`' => {
-                let last_char_token = self.current_token.chars().last();
-                if last_char_token != Some(c) && !self.current_token.is_empty() {
-                    self.print()?;
+                let last_char_token = self.current_token.as_ref().map(|token| token.chars().last()).flatten();
+                match last_char_token {
+                    Some(last_char) if last_char == c => self.current_token.as_mut().unwrap().push(c),
+                    _ => {
+                        if let Some(token) = self.current_token.take() {
+                            self.current_text.push_str(&token);
+                        }
+                        self.current_token = Some(char_to_string(c));
+                    }
                 }
-                self.current_token.push(c);
-                Ok(())
             }
             c => {
                 self.apply_modifier(Some(c))?;
-                self.current_token.push(c);
+                self.current_text.push(c);
                 self.previous_char = Some(c);
-                Ok(())
             }
         }
+        Ok(())
     }
 
     fn apply_modifier(&mut self, current_char: Option<char>) -> renderer::Result<(), R::BackendErrorType> {
+        let token = match self.current_token.take() {
+            Some(token) => token,
+            None => return Ok(())
+        };
         let left = self.previous_char.map(char::is_whitespace);
         let right = current_char.map(char::is_whitespace);
 
@@ -123,9 +130,9 @@ impl<R: Renderer> Parser<R> {
 
             }
             (_,_) => {
-                self.current_token.push_str(&self.current_token);
+                self.current_text.push_str(&token);
                 if let Some(c) = current_char {
-                    self.current_token.push(c);
+                    self.current_text.push(c);
                 }
             }
         }
@@ -140,9 +147,9 @@ impl<R: Renderer> Parser<R> {
     }
     
     fn print(&mut self) -> renderer::Result<(), R::BackendErrorType> {
-        if !self.current_token.is_empty() {
-            self.renderer.print_text(&self.current_token)?;
-            self.current_token.clear();
+        if !self.current_text.is_empty() {
+            self.renderer.print_text(&self.current_text)?;
+            self.current_text.clear();
         }
         Ok(())
     }

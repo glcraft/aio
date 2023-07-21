@@ -1,43 +1,22 @@
 mod parser;
 mod renderer;
+use smartstring::alias::String;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum InlineStyleType {
+#[derive(Debug, PartialEq, Clone)]
+pub enum StyleKind {
     Bold,
     Italic,
     BoldItalic,
-    Code,
-}
-
-pub enum BlockType {
-    Heading(u8),
-    CodeBlock,
+    InlineCode,
+    CodeBlock{
+        language: Option<String>,
+    },
     Quote,
-    ListItem(String),
-}
-
-
-impl<S: AsRef<str>> From<S> for InlineStyleType {
-    fn from(s: S) -> Self {
-        match s.as_ref() {
-            "*" | "_" => InlineStyleType::Italic,
-            "**" | "__" => InlineStyleType::Bold,
-            "***" | "___" => InlineStyleType::BoldItalic,
-            "`" => InlineStyleType::Code,
-            _ => panic!("modifier not recognized")
-        }
-    }
-}
-
-impl From<InlineStyleType> for &'static str {
-    fn from(s: InlineStyleType) -> Self {
-        match s {
-            InlineStyleType::Italic => "*",
-            InlineStyleType::Bold => "**",
-            InlineStyleType::BoldItalic => "***",
-            InlineStyleType::Code => "`",
-        }
-    }
+    Heading(u8),
+    ListItem{
+        level: u8,
+        marker: String,
+    },
 }
 
 pub use parser::Parser;
