@@ -15,8 +15,23 @@ use std::{
 
 use tokio_stream::StreamExt;
 
-#[tokio::main]
-async fn main() -> Result<(), &'static str> {
+fn main() -> Result<(), &'static str> {
+    let term_renderer = markdown::TerminalRenderer::new();
+    let mut md_parser = markdown::Parser::new(term_renderer);
+
+    let doc_markdown = std::fs::read_to_string("test.md").expect("Failed to read test.md");
+    doc_markdown
+        .split_inclusive(|c| !char::is_alphanumeric(c))
+        .for_each(|s| {
+            md_parser.push(s).expect("Failed to parse");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        });
+    md_parser.end_of_document().expect("Failed to parse");
+    return Ok(());
+}
+
+// #[tokio::main]
+async fn _main() -> Result<(), &'static str> {
     let term_renderer = markdown::TerminalRenderer::new();
     let mut md_parser = markdown::Parser::new(term_renderer);
 
