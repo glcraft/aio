@@ -84,8 +84,8 @@ async fn _main() -> Result<(), &'static str> {
     while let Some(item) = stream.next().await
         .map(Result::ok)
         .flatten() {
-            // println!("stream received");
-            String::from_utf8_lossy(item.as_ref())
+            // String::from_utf8_lossy(item.as_ref())
+            String::new()
                 .split("\n\n")
                 .filter(|item| !item.is_empty())
                 .map(openai::ChatResponse::from_str)
