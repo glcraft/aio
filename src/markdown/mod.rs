@@ -1,3 +1,4 @@
+mod token;
 mod parser;
 mod renderer;
 use smartstring::alias::String;
