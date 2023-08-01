@@ -18,4 +18,5 @@ pub type Result<T, E> = std::result::Result<T, Error<E>>;
 pub trait Renderer {
     type BackendErrorType: std::fmt::Debug;
     fn push_token(&mut self, style: token::Token) -> Result<(), Self::BackendErrorType>;
+    fn flush(&mut self) -> Result<(), Self::BackendErrorType>;
 }
