@@ -1,4 +1,5 @@
 use super::renderer::Renderer;
+use super::token;
 
 #[derive(Debug)]
 pub enum ParseError<RendererErr> {
@@ -13,6 +14,7 @@ impl<E> From<E> for ParseError<E> {
 
 pub struct Parser<R: Renderer> {
     renderer: R,
+    current_text: String,
     mode_func: fn(&mut Self, char) -> Result<(), ParseError<R::Error>>,
 }
 impl<R: Renderer> Parser<R> {
@@ -20,6 +22,7 @@ impl<R: Renderer> Parser<R> {
     pub fn new(renderer: R) -> Self {
         Self {
             renderer,
+            current_text: String::new(),
             mode_func: Self::analyse_text,
         }
     }
@@ -30,10 +33,27 @@ impl<R: Renderer> Parser<R> {
         Ok(self.renderer.flush()?)
     }
     pub fn analyse_text(&mut self, c: char) -> Result<(), ParseError<R::Error>> {
-        self.mode_func = Self::analyse_text;
+        match c {
+            '\n' => {
+                self.push_current_text()?;
+                self.renderer.push_token(token::Token::Newline)?;
+            }
+            _ => self.current_text.push(c),
+        }
         Ok(())
     }
     pub fn end_of_document(&mut self) -> Result<(), ParseError<R::Error>> {
-        todo!("End of document");
+        self.push_current_text()?;
+        self.renderer.push_token(token::Token::EndDocument)?;
+        Ok(())
+    }
+
+    fn push_current_text(&mut self) -> Result<(), ParseError<R::Error>> {
+        if !self.current_text.is_empty() {
+            let mut s = String::new();
+            std::mem::swap(&mut s, &mut self.current_text);
+            self.renderer.push_token(token::Token::Text(s))?
+        }
+        Ok(())
     }
 }
