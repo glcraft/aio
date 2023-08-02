@@ -1,4 +1,4 @@
-use smartstring::alias::String;
+// use smartstring::alias::String;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum InlineStyleToken {
@@ -28,4 +28,5 @@ pub enum Token {
     EndCode,
     Heading(u8),
     ListItem(u8),
+    EndDocument,
 }
