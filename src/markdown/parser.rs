@@ -37,20 +37,19 @@ impl<R: Renderer> Parser<R> {
         self.push_current_text()?;
         Ok(self.renderer.flush()?)
     }
-    pub fn analyse_text(&mut self, c: char) -> Result<(), ParseError<R::Error>> {
+    fn analyse_text(&mut self, c: char) -> Result<(), ParseError<R::Error>> {
         match c {
             '\n' => {
-                self.apply_token(c)?;
+                self.apply_text_token(c)?;
                 self.push_current_text()?;
                 self.renderer.push_token(token::Token::Newline)?;
                 self.previous_char = None;
-                return Ok(());
             }
             c @ ('*' | '_' | '`') => {
                 self.current_token.push(c);
             }
             _ => {
-                self.apply_token(c)?;
+                self.apply_text_token(c)?;
                 self.current_text.push(c);
                 self.previous_char = Some(c);
             }
@@ -58,11 +57,46 @@ impl<R: Renderer> Parser<R> {
         
         Ok(())
     }
-    pub fn apply_token(&mut self, current_char: char) -> Result<(), ParseError<R::Error>> {
+    fn analyse_code_block(&mut self, c: char) -> Result<(), ParseError<R::Error>> {
+        match c {
+            '\n' => {
+                self.apply_code_token(c)?;
+                self.push_current_text()?;
+                self.renderer.push_token(token::Token::Newline)?;
+                self.previous_char = None;
+            }
+            '`' if self.previous_char.is_none() => self.current_token.push(c),
+            _ => {
+                self.apply_code_token(c)?;
+                self.current_text.push(c);
+                self.previous_char = Some(c);
+            }
+        }
+        Ok(())
+    }
+    fn apply_code_token(&mut self, _: char) -> Result<(), ParseError<R::Error>> {
+        if self.current_token == "```" {
+            self.current_token.clear();
+            self.mode_func = Self::analyse_text;
+            self.renderer.push_token(token::Token::EndCode)?;
+        }
+        return Ok(());
+    }
+    fn apply_text_token(&mut self, current_char: char) -> Result<(), ParseError<R::Error>> {
         'skip: {
             if self.current_token.is_empty() {
                 break 'skip;
             }
+
+            if self.previous_char.is_none() {
+                if self.current_token == "```" {
+                    self.renderer.push_token(token::Token::BeginCode { language: None })?;
+                    self.current_token.clear();
+                    self.mode_func = Self::analyse_code_block;
+                    return Ok(());
+                }
+            }
+
             let is_begin = self.previous_char.map(|c| !c.is_alphanumeric()) == Some(true) || self.previous_char == None;
             let is_end = !current_char.is_alphanumeric(); // note: newline MUST resets state, so no need to check
             if is_begin == is_end {
