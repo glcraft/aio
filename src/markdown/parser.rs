@@ -15,6 +15,8 @@ impl<E> From<E> for ParseError<E> {
 pub struct Parser<R: Renderer> {
     renderer: R,
     current_text: String,
+    current_token: String,
+    previous_char: Option<char>,
     mode_func: fn(&mut Self, char) -> Result<(), ParseError<R::Error>>,
 }
 impl<R: Renderer> Parser<R> {
@@ -23,6 +25,8 @@ impl<R: Renderer> Parser<R> {
         Self {
             renderer,
             current_text: String::new(),
+            current_token: String::with_capacity(3),
+            previous_char: None,
             mode_func: Self::analyse_text,
         }
     }
@@ -30,15 +34,57 @@ impl<R: Renderer> Parser<R> {
         for c in text.chars() {
             (self.mode_func)(self, c)?;
         }
+        self.push_current_text()?;
         Ok(self.renderer.flush()?)
     }
     pub fn analyse_text(&mut self, c: char) -> Result<(), ParseError<R::Error>> {
         match c {
             '\n' => {
+                self.apply_token(c)?;
                 self.push_current_text()?;
                 self.renderer.push_token(token::Token::Newline)?;
+                self.previous_char = None;
+                return Ok(());
             }
-            _ => self.current_text.push(c),
+            c @ ('*' | '_' | '`') => {
+                self.current_token.push(c);
+            }
+            _ => {
+                self.apply_token(c)?;
+                self.current_text.push(c);
+                self.previous_char = Some(c);
+            }
+        }
+        
+        Ok(())
+    }
+    pub fn apply_token(&mut self, current_char: char) -> Result<(), ParseError<R::Error>> {
+        'skip: {
+            if self.current_token.is_empty() {
+                break 'skip;
+            }
+            let is_begin = self.previous_char.map(|c| !c.is_alphanumeric()) == Some(true) || self.previous_char == None;
+            let is_end = !current_char.is_alphanumeric(); // note: newline MUST resets state, so no need to check
+            if is_begin == is_end {
+                break 'skip;
+            }
+            let inline_style = match self.current_token.as_str() {
+                "*" => token::InlineStyleToken::OneStar,
+                "**" => token::InlineStyleToken::TwoStars,
+                "***" => token::InlineStyleToken::ThreeStars,
+                "_" => token::InlineStyleToken::OneDash,
+                "__" => token::InlineStyleToken::TwoDashes,
+                "`" => token::InlineStyleToken::OneQuote,
+                _ => break 'skip,
+            };
+            let inline_style = if is_begin { token::Marker::Begin(inline_style) } else { token::Marker::End(inline_style) };
+            self.push_current_text()?;
+            self.renderer.push_token(token::Token::InlineStyle(inline_style))?;
+            self.current_token.clear();
+        }
+        if !self.current_token.is_empty() {
+            self.current_text.push_str(&self.current_token);
+            self.current_token.clear();
         }
         Ok(())
     }
