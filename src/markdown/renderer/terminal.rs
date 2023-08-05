@@ -20,8 +20,9 @@ pub struct TerminalRenderer {
 }
 
 impl TerminalRenderer {
-    const CODE_BLOCK_COUNTER_SPACE: u16 = 3;
+    const CODE_BLOCK_COUNTER_SPACE: usize = 3;
     const CODE_BLOCK_LINE_CHAR: [char; 4] = ['─', '│', '┬', '┴'];
+    const CODE_BLOCK_MARGIN: usize = 1;
     pub fn new() -> Self {
         Self {
             mode: Mode::Text(Vec::new()),
@@ -68,21 +69,28 @@ impl TerminalRenderer {
         }
         Ok(())
     }
+    const fn counter_space() -> usize {
+        (Self::CODE_BLOCK_COUNTER_SPACE+Self::CODE_BLOCK_MARGIN*2) as _
+    }
+    fn repeat_char(c: char, n: usize) -> String {
+        std::iter::repeat(c).take(n).collect::<String>()
+    }
     fn draw_code_separator(sens: bool /* false: down, true: up */) -> Result<(), <Self as Renderer>::Error> {
-        let term_size = crossterm::terminal::size()?;
-        let line = format!("{}{}{}", 
-            std::iter::repeat(Self::CODE_BLOCK_LINE_CHAR[0])
-                .take(Self::CODE_BLOCK_COUNTER_SPACE.into())
-                .collect::<String>(), 
+        let term_width: usize = crossterm::terminal::size()?.0.into();
+        let line = format!("{0}{1}{2}",
+            Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::counter_space()),
             Self::CODE_BLOCK_LINE_CHAR[2+sens as usize], 
-            std::iter::repeat(Self::CODE_BLOCK_LINE_CHAR[0])
-                .take((term_size.0 - Self::CODE_BLOCK_COUNTER_SPACE - 1).into())
-                .collect::<String>()
+            Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], term_width - Self::counter_space() - 1)
         );
         queue!(std::io::stdout(), crossterm::style::Print(line))
     }
     fn draw_code_line_begin(index: usize) -> Result<(), <Self as Renderer>::Error> {
-        let line = format!("{0:0>1$}{2}", index, Self::CODE_BLOCK_COUNTER_SPACE.into(), Self::CODE_BLOCK_LINE_CHAR[1]);
+        let line = format!("{3}{0:0>1$}{3}{2}{3}", 
+            index, 
+            Self::CODE_BLOCK_COUNTER_SPACE, 
+            Self::CODE_BLOCK_LINE_CHAR[1],
+            Self::repeat_char(' ', Self::CODE_BLOCK_MARGIN)
+        );
         queue!(std::io::stdout(), crossterm::style::Print(line))
     }
 }
