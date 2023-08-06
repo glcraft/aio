@@ -16,6 +16,20 @@ pub enum Marker {
     End(InlineStyleToken),
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct Level(usize);
+
+impl<UInt: num_traits::Unsigned + Into<usize>> From<UInt> for Level {
+    fn from(n: UInt) -> Self {
+        Self(n.into())
+    }
+}
+impl From<Level> for usize {
+    fn from(n: Level) -> Self {
+        n.0
+    }
+}
+
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
@@ -26,7 +40,7 @@ pub enum Token {
         language: Option<String>,
     },
     EndCode,
-    Heading(u8),
-    ListItem(u8),
+    Heading(Level),
+    ListItem(Level),
     EndDocument,
 }

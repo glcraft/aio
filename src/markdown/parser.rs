@@ -40,17 +40,17 @@ impl<R: Renderer> Parser<R> {
     fn analyse_text(&mut self, c: char) -> Result<(), ParseError<R::Error>> {
         match c {
             '\n' => {
-                self.apply_text_token(c)?;
+                self.apply_text_token(c, false)?;
                 self.push_current_text()?;
                 self.renderer.push_token(token::Token::Newline)?;
                 self.previous_char = None;
             }
-            c @ ('*' | '_' | '`') => {
+            '*' | '_' | '`' => {
                 self.current_token.push(c);
             }
+            '#' if self.previous_char.is_none() => self.current_token.push(c),
             _ => {
-                self.apply_text_token(c)?;
-                self.current_text.push(c);
+                self.apply_text_token(c, true)?;
                 self.previous_char = Some(c);
             }
         }
@@ -80,9 +80,10 @@ impl<R: Renderer> Parser<R> {
             self.mode_func = Self::analyse_text;
             self.renderer.push_token(token::Token::EndCode)?;
         }
+        
         return Ok(());
     }
-    fn apply_text_token(&mut self, current_char: char) -> Result<(), ParseError<R::Error>> {
+    fn apply_text_token(&mut self, current_char: char, print_current_char: bool) -> Result<(), ParseError<R::Error>> {
         'skip: {
             if self.current_token.is_empty() {
                 break 'skip;
@@ -93,6 +94,11 @@ impl<R: Renderer> Parser<R> {
                     self.renderer.push_token(token::Token::BeginCode { language: None })?;
                     self.current_token.clear();
                     self.mode_func = Self::analyse_code_block;
+                    return Ok(());
+                } else if self.current_token.chars().all(|c| c == '#' ) && current_char == ' ' {
+                    let level = self.current_token.len().into();
+                    self.renderer.push_token(token::Token::Heading(level))?;
+                    self.current_token.clear();
                     return Ok(());
                 }
             }
@@ -119,6 +125,9 @@ impl<R: Renderer> Parser<R> {
         if !self.current_token.is_empty() {
             self.current_text.push_str(&self.current_token);
             self.current_token.clear();
+        }
+        if print_current_char {
+            self.current_text.push(current_char);
         }
         Ok(())
     }

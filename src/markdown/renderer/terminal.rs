@@ -12,6 +12,9 @@ enum Mode {
         index: usize,
         is_line_begin: bool,
     },
+    Header {
+        level: usize,
+    },
 }
 
 
@@ -106,13 +109,28 @@ impl Renderer for TerminalRenderer {
                 }
                 queue!(std::io::stdout(), crossterm::style::Print(s))
             },
+            token::Token::Heading(level) => {
+                queue!(std::io::stdout(), 
+                    crossterm::style::SetAttribute(crossterm::style::Attribute::Reverse),
+                    crossterm::style::SetAttribute(crossterm::style::Attribute::Bold),
+                    crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::CODE_BLOCK_MARGIN))
+                )?;
+                self.mode = Mode::Header{ level: level.into() };
+                Ok(())
+            }
             token::Token::Newline => {
                 if let Mode::Code { index, is_line_begin } = &mut self.mode {
                     *index += 1;
                     *is_line_begin = true;
+                } else if matches!(&self.mode, Mode::Header {..}) {
+                    queue!(std::io::stdout(), 
+                        crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::CODE_BLOCK_MARGIN))
+                    )?;
+                    self.mode = Mode::Text(Vec::new());
                 }
+                self.reset_styles()?;
                 queue!(std::io::stdout(), crossterm::style::Print("\n"))?;
-                self.reset_styles()
+                Ok(())
             },
             token::Token::InlineStyle(token::Marker::Begin(inline_style)) => {
                 self.push_style(inline_style)
