@@ -113,7 +113,7 @@ impl Renderer for TerminalRenderer {
                 queue!(std::io::stdout(), 
                     crossterm::style::SetAttribute(crossterm::style::Attribute::Reverse),
                     crossterm::style::SetAttribute(crossterm::style::Attribute::Bold),
-                    crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::CODE_BLOCK_MARGIN))
+                    crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::CODE_BLOCK_MARGIN)),
                 )?;
                 self.mode = Mode::Header{ level: level.into() };
                 Ok(())
@@ -123,8 +123,13 @@ impl Renderer for TerminalRenderer {
                     *index += 1;
                     *is_line_begin = true;
                 } else if matches!(&self.mode, Mode::Header {..}) {
+                    let Mode::Header { level } = self.mode else { unreachable!() };
+                    let term_width = crossterm::terminal::size()?.0 as isize;
+                    let pos_cursor = crossterm::cursor::position()?.0 as isize;
+                    let line_length = term_width / (1<<(level-1)) - pos_cursor;
+
                     queue!(std::io::stdout(), 
-                        crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::CODE_BLOCK_MARGIN))
+                        crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], (Self::CODE_BLOCK_MARGIN as isize).max(line_length) as usize))
                     )?;
                     self.mode = Mode::Text(Vec::new());
                 }
