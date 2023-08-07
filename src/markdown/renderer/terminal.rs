@@ -96,6 +96,23 @@ impl TerminalRenderer {
         );
         queue!(std::io::stdout(), crossterm::style::Print(line))
     }
+    fn draw_header_begin() -> Result<(), <Self as Renderer>::Error> {
+        queue!(std::io::stdout(), 
+            crossterm::style::SetAttribute(crossterm::style::Attribute::Reverse),
+            crossterm::style::SetAttribute(crossterm::style::Attribute::Bold),
+            crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::CODE_BLOCK_MARGIN)),
+        )
+    }
+    fn draw_header_end(level: usize) -> Result<(), <Self as Renderer>::Error> {
+        let term_width = crossterm::terminal::size()?.0 as isize;
+        let pos_cursor = crossterm::cursor::position()?.0 as isize;
+        let line_length = term_width / (1<<(level-1)) - pos_cursor;
+
+        queue!(std::io::stdout(), 
+            crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], (Self::CODE_BLOCK_MARGIN as isize).max(line_length) as usize))
+        )?;
+        Ok(())
+    }
 }
 
 impl Renderer for TerminalRenderer {
@@ -110,11 +127,7 @@ impl Renderer for TerminalRenderer {
                 queue!(std::io::stdout(), crossterm::style::Print(s))
             },
             token::Token::Heading(level) => {
-                queue!(std::io::stdout(), 
-                    crossterm::style::SetAttribute(crossterm::style::Attribute::Reverse),
-                    crossterm::style::SetAttribute(crossterm::style::Attribute::Bold),
-                    crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::CODE_BLOCK_MARGIN)),
-                )?;
+                Self::draw_header_begin()?;
                 self.mode = Mode::Header{ level: level.into() };
                 Ok(())
             }
@@ -124,13 +137,7 @@ impl Renderer for TerminalRenderer {
                     *is_line_begin = true;
                 } else if matches!(&self.mode, Mode::Header {..}) {
                     let Mode::Header { level } = self.mode else { unreachable!() };
-                    let term_width = crossterm::terminal::size()?.0 as isize;
-                    let pos_cursor = crossterm::cursor::position()?.0 as isize;
-                    let line_length = term_width / (1<<(level-1)) - pos_cursor;
-
-                    queue!(std::io::stdout(), 
-                        crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], (Self::CODE_BLOCK_MARGIN as isize).max(line_length) as usize))
-                    )?;
+                    Self::draw_header_end(level)?;
                     self.mode = Mode::Text(Vec::new());
                 }
                 self.reset_styles()?;
