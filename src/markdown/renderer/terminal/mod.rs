@@ -1,37 +1,37 @@
+mod mode;
+mod utils;
+
 use crossterm::{
     queue,
     ErrorKind
 };
+use smartstring::alias::String;
 use std::io::Write;
 use super::token;
 use super::Renderer;
+use mode::*;
 
-enum Mode {
-    Text(Vec<token::InlineStyleToken>),
-    Code {
-        index: usize,
-        is_line_begin: bool,
-    },
-    Header {
-        level: usize,
-    },
+
+
+
+struct InlineStyles {
+    styles: Vec<token::InlineStyleToken>,
+    default_style: crossterm::style::Attributes,
 }
 
-
-pub struct TerminalRenderer {
-    mode: Mode,
-}
-
-impl TerminalRenderer {
-    const CODE_BLOCK_COUNTER_SPACE: usize = 3;
-    const CODE_BLOCK_LINE_CHAR: [char; 4] = ['─', '│', '┬', '┴'];
-    const CODE_BLOCK_MARGIN: usize = 1;
-    pub fn new() -> Self {
+impl Default for InlineStyles {
+    fn default() -> Self {
         Self {
-            mode: Mode::Text(Vec::new()),
+            styles: Vec::new(),
+            default_style: crossterm::style::Attribute::Reset.into(),
         }
     }
-    fn apply_inline_style(&self, inline_style: &token::InlineStyleToken) -> Result<(), <Self as Renderer>::Error> {
+}
+impl InlineStyles {
+    fn new(default_style: crossterm::style::Attributes) -> Self {
+        Self { styles: Vec::new(), default_style}
+    }
+    fn apply_inline_style(&self, inline_style: &token::InlineStyleToken) -> Result<(), ErrorKind> {
         use crossterm::style::*;
         match inline_style {
             token::InlineStyleToken::OneStar => queue!(std::io::stdout(), SetAttribute(Attribute::Italic)),
@@ -42,76 +42,80 @@ impl TerminalRenderer {
             token::InlineStyleToken::OneQuote => queue!(std::io::stdout(), SetForegroundColor(Color::Yellow)),
         }
     }
-    fn apply_styles(&self) -> Result<(), <Self as Renderer>::Error> {
-        if let Mode::Text(ref states) = self.mode {
-            queue!(std::io::stdout(), crossterm::style::SetAttribute(crossterm::style::Attribute::Reset))?;
-            for c in states.iter() {
-                self.apply_inline_style(c)?;
-            }
+    fn apply_styles(&self) -> Result<(), ErrorKind> {
+        queue!(std::io::stdout(), crossterm::style::SetAttributes(self.default_style))?;
+        for c in self.styles.iter() {
+            self.apply_inline_style(c)?;
         }
+
         Ok(())
     }
-    fn push_style(&mut self, style: token::InlineStyleToken) -> Result<(), <Self as Renderer>::Error> {
-        if let Mode::Text(ref mut states) = self.mode {
-            states.push(style);
-            self.apply_styles()?;
-        }
+    pub fn push_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
+        self.styles.push(style);
+        self.apply_styles()?;
         Ok(())
     }
-    fn pop_style(&mut self) -> Result<(), <Self as Renderer>::Error> {
-        if let Mode::Text(ref mut states) = self.mode {
-            states.pop();
-            self.apply_styles()?;
-        }
+    pub fn pop_style(&mut self) -> Result<(), ErrorKind> {
+        self.styles.pop();
+        self.apply_styles()?;
         Ok(())
     }
-    fn reset_styles(&mut self) -> Result<(), <Self as Renderer>::Error> {
-        if let Mode::Text(ref mut states) = self.mode {
-            states.clear();
-            self.apply_styles()?;
-        }
+    pub fn reset_styles(&mut self) -> Result<(), ErrorKind> {
+        self.styles.clear();
+        self.apply_styles()?;
         Ok(())
     }
+}
+
+pub struct TerminalRenderer {
+    mode: Mode,
+}
+
+impl TerminalRenderer {
+    pub fn new() -> Self {
+        Self {
+            mode: Mode::Text(InlineStyles::default()),
+        }
+    }
+    
     const fn counter_space() -> usize {
-        (Self::CODE_BLOCK_COUNTER_SPACE+Self::CODE_BLOCK_MARGIN*2) as _
+        (utils::CODE_BLOCK_COUNTER_SPACE + utils::CODE_BLOCK_MARGIN * 2) as _
     }
-    fn repeat_char(c: char, n: usize) -> String {
-        std::iter::repeat(c).take(n).collect::<String>()
+    pub fn push_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
+        match &mut self.mode {
+            Mode::Text(styles) | Mode::Header(Header { styles, .. }) => styles.push_style(style),
+            _ => Ok(())
+        }
+    }
+    pub fn pop_style(&mut self) -> Result<(), ErrorKind> {
+        match &mut self.mode {
+            Mode::Text(styles) | Mode::Header(Header { styles, .. }) => styles.pop_style(),
+            _ => Ok(())
+        }
+    }
+    pub fn reset_styles(&mut self) -> Result<(), ErrorKind> {
+        match &mut self.mode {
+            Mode::Text(styles) | Mode::Header(Header { styles, .. }) => styles.reset_styles(),
+            _ => Ok(())
+        }
     }
     fn draw_code_separator(sens: bool /* false: down, true: up */) -> Result<(), <Self as Renderer>::Error> {
         let term_width: usize = crossterm::terminal::size()?.0.into();
         let line = format!("{0}{1}{2}",
-            Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::counter_space()),
-            Self::CODE_BLOCK_LINE_CHAR[2+sens as usize], 
-            Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], term_width - Self::counter_space() - 1)
+            utils::repeat_char(utils::CODE_BLOCK_LINE_CHAR[0], Self::counter_space()),
+            utils::CODE_BLOCK_LINE_CHAR[2+sens as usize], 
+            utils::repeat_char(utils::CODE_BLOCK_LINE_CHAR[0], term_width - Self::counter_space() - 1)
         );
         queue!(std::io::stdout(), crossterm::style::Print(line))
     }
     fn draw_code_line_begin(index: usize) -> Result<(), <Self as Renderer>::Error> {
         let line = format!("{3}{0:0>1$}{3}{2}{3}", 
             index, 
-            Self::CODE_BLOCK_COUNTER_SPACE, 
-            Self::CODE_BLOCK_LINE_CHAR[1],
-            Self::repeat_char(' ', Self::CODE_BLOCK_MARGIN)
+            utils::CODE_BLOCK_COUNTER_SPACE, 
+            utils::CODE_BLOCK_LINE_CHAR[1],
+            utils::repeat_char(' ', utils::CODE_BLOCK_MARGIN)
         );
         queue!(std::io::stdout(), crossterm::style::Print(line))
-    }
-    fn draw_header_begin() -> Result<(), <Self as Renderer>::Error> {
-        queue!(std::io::stdout(), 
-            crossterm::style::SetAttribute(crossterm::style::Attribute::Reverse),
-            crossterm::style::SetAttribute(crossterm::style::Attribute::Bold),
-            crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], Self::CODE_BLOCK_MARGIN)),
-        )
-    }
-    fn draw_header_end(level: usize) -> Result<(), <Self as Renderer>::Error> {
-        let term_width = crossterm::terminal::size()?.0 as isize;
-        let pos_cursor = crossterm::cursor::position()?.0 as isize;
-        let line_length = term_width / (1<<(level-1)) - pos_cursor;
-
-        queue!(std::io::stdout(), 
-            crossterm::style::Print(Self::repeat_char(Self::CODE_BLOCK_LINE_CHAR[0], (Self::CODE_BLOCK_MARGIN as isize).max(line_length) as usize))
-        )?;
-        Ok(())
     }
 }
 
@@ -120,6 +124,10 @@ impl Renderer for TerminalRenderer {
     fn push_token(&mut self, style: token::Token) -> Result<(), Self::Error> {
         match style {
             token::Token::Text(s) => {
+                if let Mode::Header { level, text, styles } = &mut self.mode {
+                    text.push_str(s);
+                    Self::draw_header_text()?;
+                }
                 if let Mode::Code { index, is_line_begin: is_line_begin@ true } = &mut self.mode {
                     Self::draw_code_line_begin(*index)?;
                     *is_line_begin = false;
@@ -127,8 +135,10 @@ impl Renderer for TerminalRenderer {
                 queue!(std::io::stdout(), crossterm::style::Print(s))
             },
             token::Token::Heading(level) => {
-                Self::draw_header_begin()?;
-                self.mode = Mode::Header{ level: level.into() };
+                let level = level.into();
+                let header = Header::new(level);
+                header.draw_line()?;
+                self.mode = Mode::Header(header);
                 Ok(())
             }
             token::Token::Newline => {
@@ -136,9 +146,7 @@ impl Renderer for TerminalRenderer {
                     *index += 1;
                     *is_line_begin = true;
                 } else if matches!(&self.mode, Mode::Header {..}) {
-                    let Mode::Header { level } = self.mode else { unreachable!() };
-                    Self::draw_header_end(level)?;
-                    self.mode = Mode::Text(Vec::new());
+                    self.mode = Mode::Text(InlineStyles::default());
                 }
                 self.reset_styles()?;
                 queue!(std::io::stdout(), crossterm::style::Print("\n"))?;
@@ -160,7 +168,7 @@ impl Renderer for TerminalRenderer {
             }
             token::Token::EndCode => {
                 Self::draw_code_separator(true)?;
-                self.mode = Mode::Text(Vec::new());
+                self.mode = Mode::Text(InlineStyles::default());
                 Ok(())
             }
             token::Token::EndDocument => queue!(std::io::stdout(), crossterm::style::Print("\n")),
