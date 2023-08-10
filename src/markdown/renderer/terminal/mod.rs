@@ -43,7 +43,11 @@ impl InlineStyles {
         }
     }
     fn apply_styles(&self) -> Result<(), ErrorKind> {
-        queue!(std::io::stdout(), crossterm::style::SetAttributes(self.default_style))?;
+        queue!(std::io::stdout(), 
+            crossterm::style::ResetColor, 
+            crossterm::style::SetAttribute(crossterm::style::Attribute::Reset), 
+            crossterm::style::SetAttributes(self.default_style)
+        )?;
         for c in self.styles.iter() {
             self.apply_inline_style(c)?;
         }
@@ -83,19 +87,21 @@ impl TerminalRenderer {
     }
     pub fn push_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
         match &mut self.mode {
-            Mode::Text(styles) | Mode::Header(Header { styles, .. }) => styles.push_style(style),
+            Mode::Text(styles) => styles.push_style(style),
+            Mode::Header(header) => header.push_token(token::Token::InlineStyle(token::Marker::Begin(style))),
             _ => Ok(())
         }
     }
-    pub fn pop_style(&mut self) -> Result<(), ErrorKind> {
+    pub fn pop_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
         match &mut self.mode {
-            Mode::Text(styles) | Mode::Header(Header { styles, .. }) => styles.pop_style(),
+            Mode::Text(styles) => styles.pop_style(),
+            Mode::Header(header) => header.push_token(token::Token::InlineStyle(token::Marker::End(style))),
             _ => Ok(())
         }
     }
     pub fn reset_styles(&mut self) -> Result<(), ErrorKind> {
         match &mut self.mode {
-            Mode::Text(styles) | Mode::Header(Header { styles, .. }) => styles.reset_styles(),
+            Mode::Text(styles) => styles.reset_styles(),
             _ => Ok(())
         }
     }
@@ -124,9 +130,9 @@ impl Renderer for TerminalRenderer {
     fn push_token(&mut self, style: token::Token) -> Result<(), Self::Error> {
         match style {
             token::Token::Text(s) => {
-                if let Mode::Header { level, text, styles } = &mut self.mode {
-                    text.push_str(s);
-                    Self::draw_header_text()?;
+                if let Mode::Header(h) = &mut self.mode {
+                    h.push_token(token::Token::Text(s))?;
+                    return Ok(());
                 }
                 if let Mode::Code { index, is_line_begin: is_line_begin@ true } = &mut self.mode {
                     Self::draw_code_line_begin(*index)?;
@@ -137,7 +143,7 @@ impl Renderer for TerminalRenderer {
             token::Token::Heading(level) => {
                 let level = level.into();
                 let header = Header::new(level);
-                header.draw_line()?;
+                header.init()?;
                 self.mode = Mode::Header(header);
                 Ok(())
             }
@@ -155,8 +161,8 @@ impl Renderer for TerminalRenderer {
             token::Token::InlineStyle(token::Marker::Begin(inline_style)) => {
                 self.push_style(inline_style)
             }
-            token::Token::InlineStyle(token::Marker::End(_)) => {
-                self.pop_style()
+            token::Token::InlineStyle(token::Marker::End(inline_style)) => {
+                self.pop_style(inline_style)
             }
             token::Token::BeginCode { .. } => {
                 Self::draw_code_separator(false)?;
