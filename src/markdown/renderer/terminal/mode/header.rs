@@ -56,13 +56,12 @@ impl Header {
         queue!(std::io::stdout(), 
             crossterm::cursor::MoveTo(new_cursor_pos.0, new_cursor_pos.1),
         )?;
-        let mut istyles = InlineStyles::new(Attributes::from([Attribute::Reverse, Attribute::Bold].as_slice()));
-        istyles.reset_styles()?;
+        self.styles.reset_styles()?;
         for token in &self.tokens {
             match token {
                 token::Token::Text(s) => queue!(std::io::stdout(), crossterm::style::Print(s))?,
-                token::Token::InlineStyle(token::Marker::Begin(v)) => istyles.push_style(v.clone())?,
-                token::Token::InlineStyle(token::Marker::End(_)) => istyles.pop_style()?,
+                token::Token::InlineStyle(token::Marker::Begin(v)) => self.styles.push_style(v.clone())?,
+                token::Token::InlineStyle(token::Marker::End(_)) => self.styles.pop_style()?,
                 _ => (),
             }
         }
