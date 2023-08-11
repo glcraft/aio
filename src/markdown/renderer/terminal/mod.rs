@@ -18,32 +18,12 @@ pub struct TerminalRenderer {
 impl TerminalRenderer {
     pub fn new() -> Self {
         Self {
-            mode: Mode::Text(InlineStyles::default()),
+            mode: Mode::default(),
         }
     }
     
     const fn counter_space() -> usize {
         (utils::CODE_BLOCK_COUNTER_SPACE + utils::CODE_BLOCK_MARGIN * 2) as _
-    }
-    fn push_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
-        match &mut self.mode {
-            Mode::Text(styles) => styles.push_style(style),
-            Mode::Header(header) => header.push_token(token::Token::InlineStyle(token::Marker::Begin(style))),
-            _ => Ok(())
-        }
-    }
-    fn pop_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
-        match &mut self.mode {
-            Mode::Text(styles) => styles.pop_style(),
-            Mode::Header(header) => header.push_token(token::Token::InlineStyle(token::Marker::End(style))),
-            _ => Ok(())
-        }
-    }
-    fn reset_styles(&mut self) -> Result<(), ErrorKind> {
-        match &mut self.mode {
-            Mode::Text(styles) => styles.reset_styles(),
-            _ => Ok(())
-        }
     }
     fn draw_line() -> Result<(), ErrorKind> {
         let line_length = crossterm::terminal::size()?.0;
@@ -80,67 +60,72 @@ impl TerminalRenderer {
 impl Renderer for TerminalRenderer {
     type Error = ErrorKind;
     fn push_token(&mut self, style: token::Token) -> Result<(), Self::Error> {
-        match style {
-            token::Token::Text(s) => {
-                if let Mode::Header(h) = &mut self.mode {
-                    h.push_token(token::Token::Text(s))?;
+        match (style, &mut self.mode) {
+            (token::Token::Text(s), Mode::Header(h)) => {
+                h.push_token(token::Token::Text(s))?;
+            }
+            (token::Token::Text(s), Mode::Code { index, is_line_begin: is_line_begin@ true, language }) => {
+                if *index == 0 {
+                    Self::push_code_language(language, &s);
                     return Ok(());
+                } else {
+                    Self::draw_code_line_begin(*index)?;
+                    *is_line_begin = false;
                 }
-                if let Mode::Code { index, is_line_begin: is_line_begin@ true, language } = &mut self.mode {
-                    if *index == 0 {
-                        Self::push_code_language(language, &s);
-                        return Ok(());
-                    } else {
-                        Self::draw_code_line_begin(*index)?;
-                        *is_line_begin = false;
-                    }
-                }
-                queue!(std::io::stdout(), crossterm::style::Print(s))
+                queue!(std::io::stdout(), crossterm::style::Print(s))?;
             },
-            token::Token::Heading(level) => {
+            (token::Token::Heading(level), Mode::Text(_)) => {
                 let level = level.into();
                 let header = Header::new(level);
                 header.init()?;
                 self.mode = Mode::Header(header);
-                Ok(())
             }
-            token::Token::Line => {
-                Self::draw_line()
+            (token::Token::Heading(_), _) => unreachable!("Header expected only in text mode"),
+            (token::Token::Line, Mode::Text(_)) => {
+                Self::draw_line()?;
             }
-            token::Token::Newline => {
-                if let Mode::Code { index, is_line_begin, .. } = &mut self.mode {
-                    *index += 1;
-                    *is_line_begin = true;
-                } else if matches!(&self.mode, Mode::Header {..}) {
-                    self.mode = Mode::Text(InlineStyles::default());
+            (token::Token::Line, _) => unreachable!("Line expected only in text mode"),
+            (token::Token::Newline, mode) => {
+                match mode {
+                    Mode::Code { index, is_line_begin, .. } => {
+                        *index += 1;
+                        *is_line_begin = true;
+                    },
+                    mode @ Mode::Header(_) => *mode = Mode::Text(InlineStyles::default()),
+                    Mode::Text(inline_styles) => inline_styles.reset_styles()?,
                 }
-                self.reset_styles()?;
                 queue!(std::io::stdout(), crossterm::style::Print("\n"))?;
-                Ok(())
             },
-            token::Token::InlineStyle(token::Marker::Begin(inline_style)) => {
-                self.push_style(inline_style)
+            (token::Token::InlineStyle(token::Marker::Begin(inline_style)), Mode::Text(inline_styles)) => {
+                inline_styles.push_style(inline_style)?;
             }
-            token::Token::InlineStyle(token::Marker::End(inline_style)) => {
-                self.pop_style(inline_style)
+            (token::Token::InlineStyle(token::Marker::End(_)), Mode::Text(inline_styles)) => {
+                inline_styles.pop_style()?;
             }
-            token::Token::BeginCode => {
+            (token @ token::Token::InlineStyle(token::Marker::Begin(_) | token::Marker::End(_)), Mode::Header(header)) => {
+                header.push_token(token)?;
+            }
+            (token::Token::BeginCode, mode @ Mode::Text(_)) => {
                 Self::draw_code_separator(false)?;
-                self.mode = Mode::Code {
+                *mode = Mode::Code {
                     index: 0,
                     is_line_begin: true,
                     language: None
                 };
-                Ok(())
             }
-            token::Token::EndCode => {
+            (token::Token::BeginCode, _) => unreachable!("Code beginning expected only in text mode"),
+            (token::Token::EndCode, mode @ Mode::Code { .. }) => {
                 Self::draw_code_separator(true)?;
-                self.mode = Mode::Text(InlineStyles::default());
-                Ok(())
+                *mode = Mode::Text(InlineStyles::default());
             }
-            token::Token::EndDocument => queue!(std::io::stdout(), crossterm::style::Print("\n")),
+            (token::Token::EndCode, _) => unreachable!("Code ending expected only in code mode"),
+            (token::Token::EndDocument, mode) => { 
+                *mode = Mode::default();
+                queue!(std::io::stdout(), crossterm::style::Print("\n"))?;
+            },
             _ => todo!("not implemented"),
         }
+        Ok(())
     }
     fn flush(&mut self) -> Result<(), Self::Error> {
         std::io::stdout().flush()
