@@ -85,21 +85,21 @@ impl TerminalRenderer {
     const fn counter_space() -> usize {
         (utils::CODE_BLOCK_COUNTER_SPACE + utils::CODE_BLOCK_MARGIN * 2) as _
     }
-    pub fn push_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
+    fn push_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
         match &mut self.mode {
             Mode::Text(styles) => styles.push_style(style),
             Mode::Header(header) => header.push_token(token::Token::InlineStyle(token::Marker::Begin(style))),
             _ => Ok(())
         }
     }
-    pub fn pop_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
+    fn pop_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
         match &mut self.mode {
             Mode::Text(styles) => styles.pop_style(),
             Mode::Header(header) => header.push_token(token::Token::InlineStyle(token::Marker::End(style))),
             _ => Ok(())
         }
     }
-    pub fn reset_styles(&mut self) -> Result<(), ErrorKind> {
+    fn reset_styles(&mut self) -> Result<(), ErrorKind> {
         match &mut self.mode {
             Mode::Text(styles) => styles.reset_styles(),
             _ => Ok(())
@@ -152,6 +152,9 @@ impl Renderer for TerminalRenderer {
                 header.init()?;
                 self.mode = Mode::Header(header);
                 Ok(())
+            }
+            token::Token::Line => {
+                Self::draw_line()
             }
             token::Token::Newline => {
                 if let Mode::Code { index, is_line_begin } = &mut self.mode {
