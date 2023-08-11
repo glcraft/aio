@@ -93,7 +93,7 @@ impl<R: Renderer> Parser<R> {
 
             if self.previous_char.is_none() && !self.current_token.is_empty() {
                 if self.current_token == "```" {
-                    self.renderer.push_token(token::Token::BeginCode { language: None })?;
+                    self.renderer.push_token(token::Token::BeginCode)?;
                     self.current_token.clear();
                     self.mode_func = Self::analyse_code_block;
                     return Ok(());

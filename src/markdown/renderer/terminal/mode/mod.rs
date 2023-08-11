@@ -8,6 +8,8 @@ pub enum Mode {
     Code {
         index: usize,
         is_line_begin: bool,
+        
+        language: Option<String>
     },
     Header(Header),
 }

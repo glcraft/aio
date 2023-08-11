@@ -36,9 +36,7 @@ pub enum Token {
     Text(String),
     Newline,
     InlineStyle(Marker),
-    BeginCode{
-        language: Option<String>,
-    },
+    BeginCode,
     EndCode,
     Line,
     Heading(Level),

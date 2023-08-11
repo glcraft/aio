@@ -69,6 +69,12 @@ impl TerminalRenderer {
         );
         queue!(std::io::stdout(), crossterm::style::Print(line))
     }
+    fn push_code_language(code_language: &mut Option<String>, word: &str) {
+        match code_language {
+            cl @ None => *cl = Some(word.to_string()),
+            Some(s) => s.push_str(word)
+        }
+    }
 }
 
 impl Renderer for TerminalRenderer {
@@ -80,9 +86,14 @@ impl Renderer for TerminalRenderer {
                     h.push_token(token::Token::Text(s))?;
                     return Ok(());
                 }
-                if let Mode::Code { index, is_line_begin: is_line_begin@ true } = &mut self.mode {
-                    Self::draw_code_line_begin(*index)?;
-                    *is_line_begin = false;
+                if let Mode::Code { index, is_line_begin: is_line_begin@ true, language } = &mut self.mode {
+                    if *index == 0 {
+                        Self::push_code_language(language, &s);
+                        return Ok(());
+                    } else {
+                        Self::draw_code_line_begin(*index)?;
+                        *is_line_begin = false;
+                    }
                 }
                 queue!(std::io::stdout(), crossterm::style::Print(s))
             },
@@ -97,7 +108,7 @@ impl Renderer for TerminalRenderer {
                 Self::draw_line()
             }
             token::Token::Newline => {
-                if let Mode::Code { index, is_line_begin } = &mut self.mode {
+                if let Mode::Code { index, is_line_begin, .. } = &mut self.mode {
                     *index += 1;
                     *is_line_begin = true;
                 } else if matches!(&self.mode, Mode::Header {..}) {
@@ -113,11 +124,12 @@ impl Renderer for TerminalRenderer {
             token::Token::InlineStyle(token::Marker::End(inline_style)) => {
                 self.pop_style(inline_style)
             }
-            token::Token::BeginCode { .. } => {
+            token::Token::BeginCode => {
                 Self::draw_code_separator(false)?;
                 self.mode = Mode::Code {
                     index: 0,
                     is_line_begin: true,
+                    language: None
                 };
                 Ok(())
             }
