@@ -17,6 +17,7 @@ pub struct Parser<R: Renderer> {
     current_text: String,
     current_token: String,
     previous_char: Option<char>,
+    inline_style_tokens: Vec<token::InlineStyleToken>,
     mode_func: fn(&mut Self, char) -> Result<(), ParseError<R::Error>>,
 }
 impl<R: Renderer> Parser<R> {
@@ -27,6 +28,7 @@ impl<R: Renderer> Parser<R> {
             current_text: String::new(),
             current_token: String::with_capacity(3),
             previous_char: None,
+            inline_style_tokens: Vec::new(),
             mode_func: Self::analyse_text,
         }
     }
@@ -89,7 +91,7 @@ impl<R: Renderer> Parser<R> {
                 break 'skip;
             }
 
-            if self.previous_char.is_none() {
+            if self.previous_char.is_none() && !self.current_token.is_empty() {
                 if self.current_token == "```" {
                     self.renderer.push_token(token::Token::BeginCode { language: None })?;
                     self.current_token.clear();
@@ -105,11 +107,12 @@ impl<R: Renderer> Parser<R> {
                     self.current_token.clear();
                     return Ok(());
                 }
+                self.previous_char = self.current_token.chars().last();
             }
 
             let is_begin = self.previous_char.map(|c| !c.is_alphanumeric()) == Some(true) || self.previous_char == None;
             let is_end = !current_char.is_alphanumeric(); // note: newline MUST resets state, so no need to check
-            if is_begin == is_end {
+            if is_begin == is_end && is_begin == false {
                 break 'skip;
             }
             let inline_style = match self.current_token.as_str() {
@@ -121,7 +124,14 @@ impl<R: Renderer> Parser<R> {
                 "`" => token::InlineStyleToken::OneQuote,
                 _ => break 'skip,
             };
-            let inline_style = if is_begin { token::Marker::Begin(inline_style) } else { token::Marker::End(inline_style) };
+            let inline_style = match self.inline_style_tokens.last() {
+                Some(v) if v == &inline_style => token::Marker::End(inline_style),
+                _ => token::Marker::Begin(inline_style),
+            };
+            match &inline_style {
+                token::Marker::Begin(inline_style) => self.inline_style_tokens.push(inline_style.clone()),
+                token::Marker::End(_) => { self.inline_style_tokens.pop(); },
+            }
             self.push_current_text()?;
             self.renderer.push_token(token::Token::InlineStyle(inline_style))?;
             self.current_token.clear();
