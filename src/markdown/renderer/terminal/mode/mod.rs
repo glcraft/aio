@@ -13,3 +13,9 @@ pub enum Mode {
     },
     Header(Header),
 }
+
+impl Default for Mode {
+    fn default() -> Self {
+        Self::Text(InlineStyles::default())
+    }
+}
