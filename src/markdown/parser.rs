@@ -48,7 +48,7 @@ impl<R: Renderer> Parser<R> {
             '*' | '_' | '`' => {
                 self.current_token.push(c);
             }
-            '#' if self.previous_char.is_none() => self.current_token.push(c),
+            '-' | '#' if self.previous_char.is_none() => self.current_token.push(c),
             _ => {
                 self.apply_text_token(c, true)?;
                 self.previous_char = Some(c);
@@ -94,6 +94,10 @@ impl<R: Renderer> Parser<R> {
                     self.renderer.push_token(token::Token::BeginCode { language: None })?;
                     self.current_token.clear();
                     self.mode_func = Self::analyse_code_block;
+                    return Ok(());
+                } else if self.current_token.len() >= 3 && current_char == '\n' && (self.current_token.chars().all(|c| c == '-') || self.current_token.chars().all(|c| c == '_')) {
+                    self.renderer.push_token(token::Token::Line)?;
+                    self.current_token.clear();
                     return Ok(());
                 } else if self.current_token.chars().all(|c| c == '#' ) && current_char == ' ' {
                     let level = self.current_token.len().into();

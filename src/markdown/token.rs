@@ -40,6 +40,7 @@ pub enum Token {
         language: Option<String>,
     },
     EndCode,
+    Line,
     Heading(Level),
     ListItem(Level),
     EndDocument,
