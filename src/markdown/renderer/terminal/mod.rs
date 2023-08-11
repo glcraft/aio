@@ -105,6 +105,12 @@ impl TerminalRenderer {
             _ => Ok(())
         }
     }
+    fn draw_line() -> Result<(), ErrorKind> {
+        let line_length = crossterm::terminal::size()?.0;
+        queue!(std::io::stdout(), 
+            crossterm::style::Print(utils::repeat_char(utils::CODE_BLOCK_LINE_CHAR[0], utils::CODE_BLOCK_MARGIN.max(line_length as usize)))
+        )
+    }
     fn draw_code_separator(sens: bool /* false: down, true: up */) -> Result<(), <Self as Renderer>::Error> {
         let term_width: usize = crossterm::terminal::size()?.0.into();
         let line = format!("{0}{1}{2}",
