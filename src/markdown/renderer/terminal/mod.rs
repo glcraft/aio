@@ -5,7 +5,6 @@ use crossterm::{
     queue,
     ErrorKind
 };
-use smartstring::alias::String;
 use std::io::Write;
 use super::token;
 use super::Renderer;
@@ -29,7 +28,7 @@ impl Default for InlineStyles {
 }
 impl InlineStyles {
     fn new(default_style: crossterm::style::Attributes) -> Self {
-        Self { styles: Vec::new(), default_style}
+        Self { styles: Vec::new(), default_style }
     }
     fn apply_inline_style(&self, inline_style: &token::InlineStyleToken) -> Result<(), ErrorKind> {
         use crossterm::style::*;
