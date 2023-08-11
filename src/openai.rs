@@ -128,8 +128,7 @@ impl std::fmt::Display for ChatResponse {
                 }
                 let choice = &choices[0];
                 match (&choice.delta.role, &choice.delta.content) {
-                    (Some(role), Some(content)) => write!(f, "\n{}: {}", role, content),
-                    (Some(role), None) => write!(f, "\n{}: ", role),
+                    (Some(role), opt_content) => write!(f, "\n{}: {}", role, opt_content.as_ref().map_or("", |s| s.as_str())),
                     (None, Some(content)) => write!(f, "{}", content),
                     (None, None) => Ok(()),
                 }
