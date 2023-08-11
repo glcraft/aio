@@ -32,8 +32,7 @@ impl Header {
         }
     }
     pub fn init(&self) -> Result<(), ErrorKind> {
-        let pos_cursor = crossterm::cursor::position()?.0 as isize;
-        let line_length = self.header_width()? - pos_cursor;
+        let line_length = self.header_width()?;
         self.styles.apply_styles()?;
         queue!(std::io::stdout(), 
             Print(utils::repeat_char(utils::CODE_BLOCK_LINE_CHAR[0], utils::CODE_BLOCK_MARGIN.max(line_length as usize)))
