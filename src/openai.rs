@@ -127,15 +127,14 @@ impl std::fmt::Display for ChatResponse {
                     return Ok(());
                 }
                 let choice = &choices[0];
-                match (&choice.delta.role, &choice.delta.content) {
-                    (Some(role), opt_content) => write!(f, "\n{}: {}", role, opt_content.as_ref().map_or("", |s| s.as_str())),
-                    (None, Some(content)) => write!(f, "{}", content),
-                    (None, None) => Ok(()),
+                if let Some(content) = choice.delta.content.as_ref() {
+                    write!(f, "{}", content)?;
                 }
+                Ok(())
             },
             ChatResponse::Done => {
                 if cfg!(feature = "debug") {
-                    write!(f, "\nStream finished")
+                    write!(f, "\n<<Stream finished>>")
                 } else {
                     Ok(())
                 }
