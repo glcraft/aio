@@ -1,16 +1,14 @@
 mod header;
+mod code;
 
 pub use header::Header;
+pub use code::Code;
 use super::InlineStyles;
+
 
 pub enum Mode {
     Text(InlineStyles),
-    Code {
-        index: usize,
-        is_line_begin: bool,
-        
-        language: Option<String>
-    },
+    Code(Code),
     Header(Header),
 }
 

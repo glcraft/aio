@@ -1,3 +1,5 @@
+use lazy_static::lazy_static;
+
 use super::{token, ErrorKind, queue};
 
 
@@ -70,4 +72,14 @@ pub fn repeat_char(c: char, n: usize) -> String {
         s.push(c);
     }
     s
+}
+
+#[inline]
+pub fn draw_line() -> Result<(), ErrorKind> {
+    lazy_static! {
+        static ref LINE_STRING: String = repeat_char(CODE_BLOCK_LINE_CHAR[0], CODE_BLOCK_MARGIN.max(crossterm::terminal::size().unwrap_or_default().0 as usize));
+    }
+    queue!(std::io::stdout(), 
+        crossterm::style::Print(&*LINE_STRING)
+    )
 }
