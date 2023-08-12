@@ -1,7 +1,5 @@
 mod terminal;
 
-use crossterm::{style::*, queue};
-use std::io::{stdout, Write};
 use super::token;
 pub use terminal::TerminalRenderer;
 

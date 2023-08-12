@@ -40,6 +40,6 @@ pub enum Token {
     EndCode,
     Line,
     Heading(Level),
-    ListItem(Level),
+    // ListItem(Level),
     EndDocument,
 }
