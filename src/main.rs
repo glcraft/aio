@@ -1,7 +1,10 @@
 pub mod openai;
 pub mod arguments;
+mod generators;
 mod markdown;
 mod config;
+mod credentials;
+mod serde_io;
 
 use arguments as args;
 use clap::Parser;
@@ -42,13 +45,10 @@ async fn main() -> Result<(), &'static str> {
         }
         return Ok(());
     }
-    let prompt = match config.prompts.into_iter()
-        .find(|prompt| prompt.name == args.prompt) {
-            Some(prompt) => prompt,
-            None => {
-                return Err("Prompt not found");
-            }
-        }.format_messages(&args);
+    let prompt = config.prompts.into_iter()
+        .find(|prompt| prompt.name == args.prompt)
+        .ok_or("Prompt not found")?
+        .format_messages(&args);
 
     let openai_api_key = config.api_key
         .or_else(|| std::env::var("OPENAI_API_KEY").ok())
