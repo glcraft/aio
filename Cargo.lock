@@ -18,6 +18,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "aio"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "clap",
+ "crossterm",
+ "lazy_static",
+ "markdown",
+ "num-traits",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "smartstring",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "alloc-no-stdlib"
 version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -722,27 +744,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
-name = "openai-rs"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bytes",
- "clap",
- "crossterm",
- "lazy_static",
- "markdown",
- "num-traits",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "serde_yaml",
- "smartstring",
- "tokio",
- "tokio-stream",
-]
-
-[[package]]
 name = "openssl"
 version = "0.10.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1158,6 +1159,26 @@ dependencies = [
  "redox_syscall 0.3.5",
  "rustix",
  "windows-sys 0.45.0",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.40"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "978c9a314bd8dc99be594bc3c175faaa9794be04a5a5e153caba6915336cebac"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.40"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9456a42c5b0d803c8cd86e73dd7cc9edd429499f37a3550d286d5e86720569f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.13",
 ]
 
 [[package]]
