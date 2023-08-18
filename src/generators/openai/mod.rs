@@ -1,5 +1,6 @@
 pub mod config;
 pub mod credentials;
+mod flatten_stream;
 
 use std::str::FromStr;
 use serde::{Serialize, Deserialize};
