@@ -40,7 +40,7 @@ pub struct Prompt {
 
 impl Prompt {
     pub fn format_contents(mut self, args: &crate::args::Args) -> Self {
-        self.messages.iter_mut().map(|m| m.format_content(&args));
+        self.messages.iter_mut().map(|m| m.format_content_as_ref(&args)).for_each(|_| ());
         self
     }
 }

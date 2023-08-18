@@ -36,6 +36,10 @@ impl Message {
         self.content = crate::config::format_content(&self.content, args).to_string();
         self
     }
+    pub fn format_content_as_ref(&mut self, args: &crate::args::Args) -> &mut Self {
+        self.content = crate::config::format_content(&self.content, args).to_string();
+        self
+    }
 }
 #[derive(Debug, Default, Serialize)]
 pub struct ChatRequestParameters {
