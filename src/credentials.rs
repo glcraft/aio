@@ -7,8 +7,8 @@ use crate::{
 
 
 #[derive(Debug, Deserialize)]
-struct Credentials {
-    openai: CredsOpenAI
+pub struct Credentials {
+    pub openai: CredsOpenAI
 }
 
 impl DeserializeExt for Credentials {}
