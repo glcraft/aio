@@ -1,4 +1,3 @@
-pub mod openai;
 pub mod arguments;
 mod generators;
 mod markdown;
@@ -8,6 +7,7 @@ mod serde_io;
 
 use arguments as args;
 use clap::Parser;
+use serde_io::DeserializeExt;
 use smartstring::alias::String;
 // mod http2;
 use std::{
@@ -31,76 +31,38 @@ use tokio_stream::StreamExt;
 //     return Ok(());
 // }
 
+macro_rules! raise_str {
+    ($expr:expr) => {
+        raise_str!($expr, "{}")
+    };
+    ($expr:expr, $text:literal) => {
+        {$expr.map_err(|e| format!($text, e))?}
+    };
+}
+
 #[tokio::main]
-async fn main() -> Result<(), &'static str> {
+async fn main() -> Result<(), String> {
     let term_renderer = markdown::TerminalRenderer::new();
     let mut md_parser = markdown::Parser::new(term_renderer);
 
     let args = args::Args::parse();
-    let config = config::Config::load().expect("Failed to load config");
-    if args.prompt == "?" {
-        println!("Available prompts:");
-        for prompt in config.prompts {
-            println!("  - {}", prompt.name);
+    let config = raise_str!(config::Config::from_yaml_file(&args.config_path), "Failed to parse config file: {}");
+    let creds = raise_str!(credentials::Credentials::from_yaml_file(&args.creds_path), "Failed to parse credentials file: {}");
+    // let config_openai = config.openai;
+    let mut stream = generators::openai_run(creds.openai, config, args).await.expect("Failed to run openai API");
+    // let stream = std::pin::Pin::into_inner(stream);
+    loop {
+
+        match stream.next().await {
+            Some(Ok(token)) => {
+                raise_str!(md_parser.push(&token));
+            },
+            Some(Err(e)) => {
+                eprintln!("{}", e);
+                break
+            }
+            None => break
         }
-        return Ok(());
-    }
-    let prompt = config.prompts.into_iter()
-        .find(|prompt| prompt.name == args.prompt)
-        .ok_or("Prompt not found")?
-        .format_messages(&args);
-
-    let openai_api_key = config.api_key
-        .or_else(|| std::env::var("OPENAI_API_KEY").ok())
-        .expect("OPENAI_API_KEY not set");
-    // Send a request
-    let chat_request = openai::ChatRequest::new("gpt-3.5-turbo".to_string())
-        .add_messages(prompt.messages)
-        .set_parameters(prompt.parameters.into())
-        .into_stream();
-
-    let client = reqwest::Client::new();
-    let mut stream = client.post("https://api.openai.com/v1/chat/completions")
-        .header("User-Agent", "openai-rs/1.0")
-        .header("Authorization", format!("Bearer {}", openai_api_key))
-        .json(&chat_request)
-        .send()
-        .await
-        .expect("Failed to send request")
-        .bytes_stream();
-    
-    while let Some(item) = stream.next().await
-        .map(Result::ok)
-        .flatten() {
-            std::string::String::from_utf8_lossy(item.as_ref())
-            // String::new()
-                .split("\n\n")
-                .filter(|item| !item.is_empty())
-                .map(openai::ChatResponse::from_str)
-                .filter_map(|item| {
-                    match item {
-                        Ok(item) => Some(item),
-                        Err(e) => {
-                            if cfg!(debug_assertions) {
-                                writeln!(std::io::stderr(), "Error: {:?}", e).expect("Failed to write to stderr");
-                            }
-                            None
-                        },
-                    }
-                })
-                .for_each(|item| {
-                    // print!("{}", item);
-                    if let Err(e) = md_parser.push(&item.to_string()) {
-                        if cfg!(debug_assertions) {
-                            writeln!(std::io::stderr(), "Error: {:?}", e).expect("Failed to write to stderr");
-                        }
-                    }
-                    if let Err(e) = std::io::stdout().flush() {
-                        if cfg!(debug_assertions) {
-                            println!("Error: {:?}", e); 
-                        }
-                    };
-                })
     }
     Ok(())
 }
