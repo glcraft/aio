@@ -23,7 +23,7 @@ pub fn format_content<'a>(content: &'a str, args: &args::Args) -> Cow<'a, str> {
         if prefix == "$$" {
             return format!("${}", &caps["name"]);
         }
-        let name = caps.get(1).unwrap().as_str();
+        let name = &caps["name"];
         match name {
             "input" => args.input.clone(),
             _ => String::new(),
