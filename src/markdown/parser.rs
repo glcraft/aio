@@ -1,15 +1,11 @@
+use thiserror::Error;
 use super::renderer::Renderer;
 use super::token;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum ParseError<RendererErr> {
-    RendererError(RendererErr),
-}
-
-impl<E> From<E> for ParseError<E> {
-    fn from(err: E) -> Self {
-        ParseError::RendererError(err)
-    }
+    #[error("Renderer error: {0}")]
+    RendererError(#[from] RendererErr),
 }
 
 pub struct Parser<R: Renderer> {

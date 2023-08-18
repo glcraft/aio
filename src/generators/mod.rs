@@ -1,25 +1,19 @@
 pub mod openai;
-use std::borrow::Cow;
+use thiserror::Error;
+use std::{borrow::Cow, pin::Pin};
 
 pub use openai::run as openai_run;
 
+#[derive(Debug, Error)]
 pub enum Error {
-    Reqwest(reqwest::Error),
-    Boxed(Box<dyn std::error::Error>),
+    #[error("reqwest error: {0}")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("An error ocurred: {0}")]
+    Boxed(#[from] Box<dyn std::error::Error>),
+    #[error("An error ocurred: {0}")]
     Custom(Cow<'static, str>)
-}
-
-impl From<reqwest::Error> for Error {
-    fn from(e: reqwest::Error) -> Self {
-        Self::Reqwest(e)
-    }
-}
-impl From<Box<dyn std::error::Error>> for Error {
-    fn from(e: Box<dyn std::error::Error>) -> Self {
-        Self::Boxed(e)
-    }
 }
 
 pub type BoxedError = Box<dyn std::error::Error>;
 pub type ResultStream = Result<String, Error>;
-pub type ResultRun = Result<Box<dyn tokio_stream::Stream<Item = ResultStream>>, Error>;
+pub type ResultRun = Result<Pin<Box<dyn tokio_stream::Stream<Item = ResultStream>>>, Error>;
