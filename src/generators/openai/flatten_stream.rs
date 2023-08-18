@@ -80,27 +80,28 @@ impl<St: ?Sized> FlattenTrait for St where St: Stream {}
 //     St: Stream<Item = Result<It, super::Error>>,
 // {}
 
-
-impl<I> Stream for Flatten<I>
+/// Implementation of Flatten for Result of Iterator
+impl<It, E, St> Stream for Flatten<St>
 where
-    I: Stream,
-    <I as Stream>::Item: Iterator,
+    St: Stream<Item = Result<It, E>>,
+    It: Iterator
 {
-    type Item = <<I as Stream>::Item as Iterator>::Item;
+    type Item = Result<<It as Iterator>::Item, E>;
     fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<<Self as Stream>::Item>> {
         use std::task::Poll::*;
         use std::pin::pin;
         match self.current {
-            Some(ref mut item) => {
+            Some(Ok(ref mut item)) => {
                 let item = item.next();
                 match item {
                     None => {
                         self.current = None;
                         self.poll_next(cx)
                     }
-                    v => Ready(v),
+                    Some(v) => Ready(Some(Ok(v))),
                 }
             }
+            Some(Err(e)) => Ready(Some(Err(e))),
             None => {
                 let item = pin!(self.stream).poll_next(cx);
                 match item {
@@ -115,3 +116,41 @@ where
         }
     }
 }
+
+
+// Implementation of Flatten for Iterator
+
+// impl<St, It> Stream for Flatten<St>
+// where
+//     St: Stream<Item = It>,
+//     It: Iterator
+// {
+//     type Item = <It as Iterator>::Item;
+//     fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<<Self as Stream>::Item>> {
+//         use std::task::Poll::*;
+//         use std::pin::pin;
+//         match self.current {
+//             Some(ref mut item) => {
+//                 let item = item.next();
+//                 match item {
+//                     None => {
+//                         self.current = None;
+//                         self.poll_next(cx)
+//                     }
+//                     v => Ready(v),
+//                 }
+//             }
+//             None => {
+//                 let item = pin!(self.stream).poll_next(cx);
+//                 match item {
+//                     Ready(Some(item)) => {
+//                         self.current = Some(item);
+//                         self.poll_next(cx)
+//                     }
+//                     Ready(None) => Ready(None),
+//                     Pending => Pending,
+//                 }
+//             }
+//         }
+//     }
+// }
