@@ -14,12 +14,14 @@ pub trait FlattenTrait: Stream
     }
 }
 
-pub struct Flatten<I> 
+#[pin_project::pin_project]
+pub struct Flatten<St> 
 where
-    I: Stream,
+    St: Stream,
 {
-    stream: I,
-    current: Option<<I as Stream>::Item>
+    #[pin]
+    stream: St,
+    current: Option<<St as Stream>::Item>
 }
 
 // impl<I> FlattenTrait for I 
@@ -90,23 +92,29 @@ where
     fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<<Self as Stream>::Item>> {
         use std::task::Poll::*;
         use std::pin::pin;
-        match self.current {
+        
+        match self.as_mut().project().current {
             Some(Ok(ref mut item)) => {
                 let item = item.next();
                 match item {
                     None => {
-                        self.current = None;
+                        *self.as_mut().project().current = None;
                         self.poll_next(cx)
                     }
                     Some(v) => Ready(Some(Ok(v))),
                 }
             }
-            Some(Err(e)) => Ready(Some(Err(e))),
+            e @ Some(Err(_)) => {
+                let mut emv = None;
+                std::mem::swap(&mut emv, e);
+                let Some(Err(emv)) = emv else { unreachable!() };
+                Ready(Some(Err(emv)))
+            },
             None => {
-                let item = pin!(self.stream).poll_next(cx);
+                let item = self.as_mut().project().stream.poll_next(cx);
                 match item {
                     Ready(Some(item)) => {
-                        self.current = Some(item);
+                        *self.as_mut().project().current = Some(item);
                         self.poll_next(cx)
                     }
                     Ready(None) => Ready(None),
