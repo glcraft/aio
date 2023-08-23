@@ -231,6 +231,10 @@ where
 pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::Args) -> ResultRun {
     let openai_api_key = creds.api_key;
 
+    if openai_api_key.is_empty() {
+        return Err(Error::Custom("OpenAI API key not found".into()));
+    }
+
     let prompt = config.openai.prompts.into_iter()
         .find(|prompt| prompt.name == args.prompt)
         .ok_or(Error::Custom("Prompt not found".into()))?
