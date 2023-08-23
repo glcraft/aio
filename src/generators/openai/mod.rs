@@ -251,7 +251,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
 
     let client = reqwest::Client::new();
     let stream = client.post("https://api.openai.com/v1/chat/completions")
-        .header("User-Agent", "openai-rs/1.0")
+        .header("User-Agent", cargo_info::user_agent!())
         .header("Authorization", format!("Bearer {}", openai_api_key))
         .json(&chat_request)
         .send()
@@ -260,19 +260,22 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
 
     let stream_string = stream
         .map(|input| -> Result<_, Error> {
-            let bytes = input.map_err(|e| Error::from(e))?;
-            Ok(SplitBytes::new(bytes, b"\n\n"))
+            Ok(SplitBytes::new(input?, b"\n\n"))
         })
         .flatten_stream()
-        .map(|v| Ok(ChatResponse::from_slice(v?.as_ref()).map_err(|e| Error::Boxed(Box::new(e)))? ))
+        .map(|v| {
+            let v = v?;
+            let chat_resp = ChatResponse::from_slice(&v);
+            match chat_resp {
+                Ok(resp) => Ok(resp),
+                Err(e) => Err(Error::Boxed(Box::new(e)))
+            }
+        })
         .map_while(|resp| {
-            let resp = match resp {
-                Ok(resp) => resp,
-                Err(e) => return Some(Err(e)),
-            };
             match resp {
-                msg @ ChatResponse::Message { .. }  => Some(Ok(msg.to_string())),
-                ChatResponse::Done => None,
+                Ok(msg @ ChatResponse::Message { .. }) => Some(Ok(msg.to_string())),
+                Ok(ChatResponse::Done) => None,
+                Err(e) => return Some(Err(e)),
             }
         });
     Ok(Box::pin(stream_string))
