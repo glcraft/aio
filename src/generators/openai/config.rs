@@ -5,7 +5,7 @@ use super::Message;
 pub struct Config {
     pub prompts: Vec<Prompt>,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Parameters {
     max_tokens: Option<u32>,
     temperature: Option<f32>,
@@ -31,7 +31,7 @@ impl From<Parameters> for ChatRequestParameters {
         }
     }
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Prompt {
     pub name: String,
     pub messages: Vec<Message>,
@@ -39,6 +39,16 @@ pub struct Prompt {
 }
 
 impl Prompt {
+    pub fn from_input(input: &str) -> Self {
+        Self {
+            name: "dumb".to_string(),
+            messages: vec![Message {
+                role: super::Role::User,
+                content: input.into(),
+            }],
+            ..Default::default()
+        }
+    }
     pub fn format_contents(mut self, args: &crate::args::Args) -> Self {
         self.messages.iter_mut().map(|m| m.format_content_as_ref(&args)).for_each(|_| ());
         self
