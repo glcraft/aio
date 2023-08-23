@@ -161,16 +161,23 @@ impl std::fmt::Display for ChatResponse {
 }
 
 impl ChatResponse {
-    pub fn from_bytes(bytes: bytes::Bytes) -> Result<Self, serde_json::Error> {
-        if bytes.starts_with(b"data: ") {
+    pub fn from_slice(bytes: &[u8]) -> Result<Self, serde_json::Error> {
+        // eprintln!("from_bytes|1: {}", String::from_utf8_lossy(&bytes));
+        if !bytes.starts_with(b"data: ") {
             use serde::de::Error;
             return Err(serde_json::Error::custom("Not a data line"));
         }
-        let bytes = &bytes[0..5];
+        let bytes = &bytes[6..];
+        // eprintln!("from_bytes|2: {}", String::from_utf8_lossy(&bytes));
         if bytes.starts_with(b"[DONE]") {
             return Ok(ChatResponse::Done);
         }
-        serde_json::from_slice(&bytes[5..])
+        let result = serde_json::from_slice(&bytes);
+        result
+    }
+    #[inline]
+    pub fn from_bytes(bytes: bytes::Bytes) -> Result<Self, serde_json::Error> {
+        Self::from_slice(&bytes)
     }
 }
 
