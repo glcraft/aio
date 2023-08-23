@@ -23,3 +23,5 @@ smartstring = { version = "1.0", features = ["serde"] }
 thiserror = "1.0"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1.12"
+
+cargo_info = { path = "crates/cargo_info" }
