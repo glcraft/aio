@@ -1,8 +1,9 @@
 pub mod config;
 pub mod credentials;
 mod flatten_stream;
+use bytes::Bytes;
+use flatten_stream::FlattenTrait;
 
-use std::str::FromStr;
 use serde::{Serialize, Deserialize};
 use tokio_stream::{Stream, StreamExt};
 use crate::args;
@@ -181,6 +182,52 @@ impl ChatResponse {
     }
 }
 
+struct SplitBytes<Sep> 
+where 
+    Sep: AsRef<[u8]>
+{
+    bytes: Bytes,
+    separator: Sep,
+    index: Option<usize>,
+}
+
+impl<Sep> SplitBytes<Sep> 
+where
+    Sep: AsRef<[u8]>
+{
+    fn new(bytes: Bytes, separator: Sep) -> Self {
+        Self {
+            bytes,
+            separator,
+            index: Some(0),
+        }
+    }
+}
+
+impl<Sep> Iterator for SplitBytes<Sep> 
+where
+    Sep: AsRef<[u8]>
+{
+    type Item = Bytes;
+    fn next(&mut self) -> Option<Self::Item> {
+        let separator = self.separator.as_ref();
+        let index = self.index?;
+        let bytes = &self.bytes[index..];
+        let found = bytes
+            .windows(separator.len())
+            .find(|b| b == &separator);
+        let slice_bytes = if let Some(found) = found {
+            let end_selection = found.len();
+            self.index.map(|i| i + found.len() + separator.len());
+            &bytes[..end_selection]
+        } else {
+            self.index = None;
+            &bytes[..]
+        };
+        Some(Bytes::copy_from_slice(slice_bytes))
+    }
+}
+
 pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::Args) -> ResultRun {
     let openai_api_key = creds.api_key;
 
@@ -205,17 +252,21 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
         .bytes_stream();
 
     let stream_string = stream
-        .map(|input| -> Result<ChatResponse, Error> {
-            input
-                .map_err(|e| Error::from(e))
-                .and_then(|input| ChatResponse::from_bytes(input).map_err(|e| Error::Boxed(Box::new(e))))
+        .map(|input| -> Result<_, Error> {
+            let bytes = input.map_err(|e| Error::from(e))?;
+            Ok(SplitBytes::new(bytes, b"\n\n"))
         })
+        .flatten_stream()
+        .map(|v| Ok(ChatResponse::from_slice(v?.as_ref()).map_err(|e| Error::Boxed(Box::new(e)))? ))
         .map_while(|resp| {
+            let resp = match resp {
+                Ok(resp) => resp,
+                Err(e) => return Some(Err(e)),
+            };
             match resp {
-                Ok(msg @ ChatResponse::Message { .. }) => Some(Ok(msg.to_string())),
-                Ok(ChatResponse::Done) => None,
-                Err(e) => Some(Err(e)),
+                msg @ ChatResponse::Message { .. }  => Some(Ok(msg.to_string())),
+                ChatResponse::Done => None,
             }
         });
-    Ok(Box::new(stream_string))
+    Ok(Box::pin(stream_string))
 }
