@@ -212,19 +212,19 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let separator = self.separator.as_ref();
         let index = self.index?;
-        let bytes = &self.bytes[index..];
+        let bytes = self.bytes.slice(index..);
         let found = bytes
             .windows(separator.len())
             .find(|b| b == &separator);
         let slice_bytes = if let Some(found) = found {
-            let end_selection = found.len();
-            self.index.map(|i| i + found.len() + separator.len());
-            &bytes[..end_selection]
+            let end_selection = found.as_ptr() as usize - self.bytes.as_ptr() as usize;
+            self.index.map(|i| i + end_selection + found.len());
+            bytes.slice(..end_selection)
         } else {
             self.index = None;
-            &bytes[..]
+            bytes
         };
-        Some(Bytes::copy_from_slice(slice_bytes))
+        Some(slice_bytes)
     }
 }
 
