@@ -35,7 +35,7 @@ async fn main() -> Result<(), String> {
         "Failed to parse credentials file: {}"
     );
     // let config_openai = config.openai;
-    let mut stream = generators::openai_run(creds.openai, config, args)
+    let mut stream = generators::openai::run(creds.openai, config, args)
         .await
         .expect("Failed to run openai API");
     // let stream = std::pin::Pin::into_inner(stream);

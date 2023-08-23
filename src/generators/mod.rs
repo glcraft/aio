@@ -2,8 +2,6 @@ pub mod openai;
 use thiserror::Error;
 use std::{borrow::Cow, pin::Pin};
 
-pub use openai::run as openai_run;
-
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("reqwest error: {0}")]
