@@ -12,8 +12,11 @@ pub struct Args {
     /// Default: ~/.aio/creds.yaml
     #[arg(long, default_value_t = String::from("~/.aio/creds.yaml"))]
     pub creds_path: String,
-    /// Prompt name
-    pub prompt: String,
+    /// Engine name
+    /// The name can be followed by custom prompt name from the configuration file
+    /// Ex: openai:command
+    #[arg(long, short)]
+    pub engine: String,
     /// Input
     pub input: String,
 }

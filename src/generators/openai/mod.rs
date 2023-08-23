@@ -7,6 +7,8 @@ use flatten_stream::FlattenTrait;
 use serde::{Serialize, Deserialize};
 use tokio_stream::{Stream, StreamExt};
 use crate::args;
+use self::config::Prompt;
+
 use super::{ResultStream, ResultRun, Error, BoxedError};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -237,11 +239,16 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
     if openai_api_key.is_empty() {
         return Err(Error::Custom("OpenAI API key not found".into()));
     }
+    let config_prompt = args.engine.find(':').map(|i| &args.engine[i+1..]);
 
-    let prompt = config.openai.prompts.into_iter()
-        .find(|prompt| prompt.name == args.prompt)
-        .ok_or(Error::Custom("Prompt not found".into()))?
-        .format_contents(&args);
+    let prompt = if let Some(config_prompt) = config_prompt {
+        config.openai.prompts.into_iter()
+            .find(|prompt| prompt.name == config_prompt)
+            .ok_or(Error::Custom("Prompt not found".into()))?
+            .format_contents(&args)
+    } else {
+        Prompt::from_input(&args.input)
+    };
 
     // Send a request
     let chat_request = ChatRequest::new("gpt-3.5-turbo".to_string())
