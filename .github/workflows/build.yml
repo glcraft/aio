@@ -24,12 +24,16 @@ jobs:
         include:
           - system: pc-windows-msvc
             os: windows-latest
+            ext: .exe
           - system: apple-darwin
             os: macos-latest
+            ext:
           - system: unknown-linux-gnu
             os: ubuntu-latest
+            ext:
           - system: unknown-linux-musl
             os: ubuntu-latest
+            ext:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -59,12 +63,12 @@ jobs:
           args: --release --target "${{ matrix.arch }}-${{ matrix.system }}"
           use-cross: false
       - name: Rename Build
-        run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/aio target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}
+        run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/aio${{ matrix.ext }} target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.ext }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
           name: aio-${{ matrix.arch }}-${{ matrix.system }}
-          path: target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}
+          path: target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.ext }}
 
   release:
     needs: build
