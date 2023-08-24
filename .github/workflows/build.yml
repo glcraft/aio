@@ -1,0 +1,87 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        system: 
+          - unknown-linux-gnu
+          - unknown-linux-musl
+          - apple-darwin
+          - pc-windows-msvc
+        arch:
+          - x86_64
+          - aarch64
+        include:
+          - system: pc-windows-msvc
+            os: windows-latest
+          - system: apple-darwin
+            os: macos-latest
+          - system: unknown-linux-gnu
+            os: ubuntu-latest
+          - system: unknown-linux-musl
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.arch }}-${{ matrix.system }}
+          profile: minimal
+          override: true
+      - name: Install gcc environnement for musl
+        if: matrix.system == 'unknown-linux-musl'
+        run:
+          wget -nv http://more.musl.cc/x86_64-linux-musl/${{ matrix.arch }}-linux-musl-cross.tgz;
+          tar -xf ${{ matrix.arch }}-linux-musl-cross.tgz;
+          echo "PATH=$PWD/${{ matrix.arch }}-linux-musl-cross/bin:$PATH" >> $GITHUB_ENV;
+      - name: Install gcc environnement for aarch64 gnu
+        if: matrix.system == 'unknown-linux-gnu' && matrix.arch == 'aarch64'
+        run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target "${{ matrix.arch }}-${{ matrix.system }}"
+          use-cross: false
+      - name: Rename Build
+        run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/cddio target/${{ matrix.arch }}-${{ matrix.system }}/release/cddio-${{ matrix.arch }}-${{ matrix.system }}
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: cddio-${{ matrix.arch }}-${{ matrix.system }}
+          path: target/${{ matrix.arch }}-${{ matrix.system }}/release/cddio-${{ matrix.arch }}-${{ matrix.system }}
+
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Retreive version from Cargo.toml
+        id: version
+        run: echo ::set-output name=version::$(grep -m1 version Cargo.toml | cut -d '"' -f2)
+      - name: Download build artifact
+        uses: actions/download-artifact@v2
+      - name: Upload to Release
+        uses: meeDamian/github-release@2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: >
+            cddio-aarch64-unknown-linux-gnu/cddio-aarch64-unknown-linux-gnu
+            cddio-aarch64-unknown-linux-musl/cddio-aarch64-unknown-linux-musl
+            cddio-x86_64-unknown-linux-gnu/cddio-x86_64-unknown-linux-gnu
+          tag: v${{ steps.version.outputs.version }}
+          name: CDDIO-v${{ steps.version.outputs.version }}
+          allow_override: true
