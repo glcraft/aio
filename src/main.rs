@@ -34,11 +34,16 @@ async fn main() -> Result<(), String> {
         credentials::Credentials::from_yaml_file(&args.creds_path),
         "Failed to parse credentials file: {}"
     );
-    // let config_openai = config.openai;
-    let mut stream = generators::openai::run(creds.openai, config, args)
-        .await
-        .expect("Failed to run openai API");
-    // let stream = std::pin::Pin::into_inner(stream);
+
+    let engine = args.engine
+        .find(':')
+        .map(|i| &args.engine[..i])
+        .unwrap_or(args.engine.as_str());
+    let mut stream = match engine {
+        "openai" => generators::openai::run(creds.openai, config, args).await,
+        _ => panic!("Unknown engine: {}", engine),
+    }.map_err(|e| format!("Failed to request OpenAI API: {}", e))?;
+
     loop {
         match stream.next().await {
             Some(Ok(token)) => {
