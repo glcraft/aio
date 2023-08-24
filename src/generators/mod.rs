@@ -1,4 +1,5 @@
 pub mod openai;
+
 use tokio_stream::Stream;
 use thiserror::Error;
 use std::{borrow::Cow, pin::Pin};
