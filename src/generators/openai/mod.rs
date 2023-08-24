@@ -277,7 +277,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
             let chat_resp = ChatResponse::from_bytes(v);
             match chat_resp {
                 Ok(resp) => Ok(resp),
-                Err(e) => Err(Error::Boxed(Box::new(e)))
+                Err(e) => Err(Error::SerializeJSON(e))
             }
         })
         .map_while(|resp| {
