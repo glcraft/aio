@@ -46,13 +46,8 @@ async fn main() -> Result<(), String> {
 
     loop {
         match stream.next().await {
-            Some(Ok(token)) => {
-                raise_str!(md_parser.push(&token), "Failed to parse markdown: {}");
-            }
-            Some(Err(e)) => {
-                eprintln!("{}", e);
-                break;
-            }
+            Some(Ok(token)) => raise_str!(md_parser.push(&token), "Failed to parse markdown: {}"),
+            Some(Err(e)) => Err(e.to_string())?,
             None => break,
         }
     }
