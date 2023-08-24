@@ -56,12 +56,12 @@ jobs:
           args: --release --target "${{ matrix.arch }}-${{ matrix.system }}"
           use-cross: false
       - name: Rename Build
-        run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/cddio target/${{ matrix.arch }}-${{ matrix.system }}/release/cddio-${{ matrix.arch }}-${{ matrix.system }}
+        run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/aio target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
-          name: cddio-${{ matrix.arch }}-${{ matrix.system }}
-          path: target/${{ matrix.arch }}-${{ matrix.system }}/release/cddio-${{ matrix.arch }}-${{ matrix.system }}
+          name: aio-${{ matrix.arch }}-${{ matrix.system }}
+          path: target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}
 
   release:
     needs: build
@@ -79,9 +79,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: >
-            cddio-aarch64-unknown-linux-gnu/cddio-aarch64-unknown-linux-gnu
-            cddio-aarch64-unknown-linux-musl/cddio-aarch64-unknown-linux-musl
-            cddio-x86_64-unknown-linux-gnu/cddio-x86_64-unknown-linux-gnu
+            aio-aarch64-unknown-linux-gnu/aio-aarch64-unknown-linux-gnu
+            aio-aarch64-unknown-linux-musl/aio-aarch64-unknown-linux-musl
+            aio-x86_64-unknown-linux-gnu/aio-x86_64-unknown-linux-gnu
           tag: v${{ steps.version.outputs.version }}
           name: CDDIO-v${{ steps.version.outputs.version }}
           allow_override: true
