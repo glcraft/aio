@@ -12,25 +12,34 @@ jobs:
   build:
     strategy:
       fail-fast: false
+      # matrix:
+      #   system: 
+      #     - unknown-linux-gnu
+      #     - unknown-linux-musl
+      #     - apple-darwin
+      #     - pc-windows-msvc
+      #   arch:
+      #     - x86_64
+      #     - aarch64
+      #   include:
+      #     - system: pc-windows-msvc
+      #       os: windows-latest
+      #       ext: .exe
+      #     - system: apple-darwin
+      #       os: macos-latest
+      #       ext:
+      #     - system: unknown-linux-gnu
+      #       os: ubuntu-latest
+      #       ext:
+      #     - system: unknown-linux-musl
+      #       os: ubuntu-latest
+      #       ext:
       matrix:
         system: 
-          - unknown-linux-gnu
           - unknown-linux-musl
-          - apple-darwin
-          - pc-windows-msvc
         arch:
-          - x86_64
           - aarch64
         include:
-          - system: pc-windows-msvc
-            os: windows-latest
-            ext: .exe
-          - system: apple-darwin
-            os: macos-latest
-            ext:
-          - system: unknown-linux-gnu
-            os: ubuntu-latest
-            ext:
           - system: unknown-linux-musl
             os: ubuntu-latest
             ext:
