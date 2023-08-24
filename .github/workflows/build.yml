@@ -59,6 +59,7 @@ jobs:
       - name: Build
         uses: actions-rs/cargo@v1
         env:
+          CFLAGS: -mno-outline-atomics
           CC_x86_64-unknown-linux-musl: x86_64-linux-musl-gcc
         with:
           command: build
