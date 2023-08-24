@@ -1,106 +1,56 @@
-pub mod openai;
 pub mod arguments;
+mod generators;
 mod markdown;
 mod config;
+mod credentials;
+mod serde_io;
 
 use arguments as args;
 use clap::Parser;
+use serde_io::DeserializeExt;
 use smartstring::alias::String;
-// mod http2;
-use std::{
-    io::Write, str::FromStr
-};
-
 use tokio_stream::StreamExt;
 
-// fn main() -> Result<(), &'static str> {
-//     let term_renderer = markdown::TerminalRenderer::new();
-//     let mut md_parser = markdown::Parser::new(term_renderer);
-
-//     let doc_markdown = std::fs::read_to_string("test_command.md").expect("Failed to read test.md");
-//     doc_markdown
-//         .split_inclusive(|c| !char::is_alphanumeric(c))
-//         .for_each(|s| {
-//             md_parser.push(s).expect("Failed to parse");
-//             std::thread::sleep(std::time::Duration::from_millis(50));
-//         });
-//     md_parser.end_of_document().expect("Failed to parse");
-//     return Ok(());
-// }
+macro_rules! raise_str {
+    ($expr:expr) => {
+        raise_str!($expr, "{}")
+    };
+    ($expr:expr, $text:literal) => {
+        { $expr.map_err(|e| format!($text, e))? }
+    };
+}
 
 #[tokio::main]
-async fn main() -> Result<(), &'static str> {
+async fn main() -> Result<(), String> {
     let term_renderer = markdown::TerminalRenderer::new();
     let mut md_parser = markdown::Parser::new(term_renderer);
 
     let args = args::Args::parse();
-    let config = config::Config::load().expect("Failed to load config");
-    if args.prompt == "?" {
-        println!("Available prompts:");
-        for prompt in config.prompts {
-            println!("  - {}", prompt.name);
+    let config = raise_str!(
+        config::Config::from_yaml_file(&args.config_path),
+        "Failed to parse config file: {}"
+    );
+    let creds = raise_str!(
+        credentials::Credentials::from_yaml_file(&args.creds_path),
+        "Failed to parse credentials file: {}"
+    );
+
+    let engine = args.engine
+        .find(':')
+        .map(|i| &args.engine[..i])
+        .unwrap_or(args.engine.as_str());
+    let mut stream = match engine {
+        "openai" => generators::openai::run(creds.openai, config, args).await,
+        _ => panic!("Unknown engine: {}", engine),
+    }.map_err(|e| format!("Failed to request OpenAI API: {}", e))?;
+
+    loop {
+        match stream.next().await {
+            Some(Ok(token)) => raise_str!(md_parser.push(&token), "Failed to parse markdown: {}"),
+            Some(Err(e)) => Err(e.to_string())?,
+            None => break,
         }
-        return Ok(());
     }
-    let prompt = match config.prompts.into_iter()
-        .find(|prompt| prompt.name == args.prompt) {
-            Some(prompt) => prompt,
-            None => {
-                return Err("Prompt not found");
-            }
-        }.format_messages(&args);
-
-    let openai_api_key = config.api_key
-        .or_else(|| std::env::var("OPENAI_API_KEY").ok())
-        .expect("OPENAI_API_KEY not set");
-    // Send a request
-    let chat_request = openai::ChatRequest::new("gpt-3.5-turbo".to_string())
-        .add_messages(prompt.messages)
-        .set_parameters(prompt.parameters.into())
-        .into_stream();
-
-    let client = reqwest::Client::new();
-    let mut stream = client.post("https://api.openai.com/v1/chat/completions")
-        .header("User-Agent", "openai-rs/1.0")
-        .header("Authorization", format!("Bearer {}", openai_api_key))
-        .json(&chat_request)
-        .send()
-        .await
-        .expect("Failed to send request")
-        .bytes_stream();
-    
-    while let Some(item) = stream.next().await
-        .map(Result::ok)
-        .flatten() {
-            std::string::String::from_utf8_lossy(item.as_ref())
-            // String::new()
-                .split("\n\n")
-                .filter(|item| !item.is_empty())
-                .map(openai::ChatResponse::from_str)
-                .filter_map(|item| {
-                    match item {
-                        Ok(item) => Some(item),
-                        Err(e) => {
-                            if cfg!(debug_assertions) {
-                                writeln!(std::io::stderr(), "Error: {:?}", e).expect("Failed to write to stderr");
-                            }
-                            None
-                        },
-                    }
-                })
-                .for_each(|item| {
-                    // print!("{}", item);
-                    if let Err(e) = md_parser.push(&item.to_string()) {
-                        if cfg!(debug_assertions) {
-                            writeln!(std::io::stderr(), "Error: {:?}", e).expect("Failed to write to stderr");
-                        }
-                    }
-                    if let Err(e) = std::io::stdout().flush() {
-                        if cfg!(debug_assertions) {
-                            println!("Error: {:?}", e); 
-                        }
-                    };
-                })
-    }
+    raise_str!(md_parser.end_of_document(), "Failed to end markdown: {}");
     Ok(())
 }

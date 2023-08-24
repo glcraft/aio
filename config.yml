@@ -1,0 +1,26 @@
+openai:
+  prompts:
+    - name: command
+      messages: 
+        - role: system
+          content: In markdown, write the command that best fits my request in a "```nu" block in "## Command" then describe each parameter in "## Explanation".
+        - role: user
+          content: $input
+      parameters:
+        temperature: 0
+        top-p: 1.0 
+        frequency-penalty: 0.2
+        presence-penalty: 0 
+        max-tokens: 200
+    - name: ask
+      messages: 
+        - role: system
+          content: You are ChatGPT, a powerful conversational chatbot. Answer to me in informative way unless I tell you otherwise. Format the text in markdown.
+        - role: user
+          content: $input
+      parameters:
+        temperature: 0.7 
+        top-p: 1.0 
+        frequency-penalty: 0 
+        presence-penalty: 0 
+        max-tokens: 300
