@@ -58,6 +58,8 @@ jobs:
         run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Build
         uses: actions-rs/cargo@v1
+        env:
+          CC_x86_64-unknown-linux-musl: x86_64-linux-musl-gcc
         with:
           command: build
           args: --release --target "${{ matrix.arch }}-${{ matrix.system }}"
