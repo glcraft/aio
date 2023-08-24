@@ -1,163 +1,162 @@
-use super::StyleKind;
-use super::Renderer;
-use super::renderer;
-use smartstring::alias::String;
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum ParserState {
-    Normal,
-    CodeBlock,
-    InlineCode
-}
-
-#[inline]
-fn char_to_string(c: char) -> String {
-    let mut s = String::new();
-    s.push(c);
-    s
-}
+use super::renderer::Renderer;
+use super::token;
 
 #[derive(Debug)]
-pub struct Parser<R: Renderer> {
-    current_text: String,
-    // current_format: Format,
-    // styles: Vec<StyleKind>,
-    padding: Option<String>,
-    current_state: ParserState,
-    previous_char: Option<char>,
-    current_token: Option<String>,
-
-    renderer: R,
+pub enum ParseError<RendererErr> {
+    RendererError(RendererErr),
 }
 
+impl<E> From<E> for ParseError<E> {
+    fn from(err: E) -> Self {
+        ParseError::RendererError(err)
+    }
+}
+
+pub struct Parser<R: Renderer> {
+    renderer: R,
+    current_text: String,
+    current_token: String,
+    previous_char: Option<char>,
+    inline_style_tokens: Vec<token::InlineStyleToken>,
+    mode_func: fn(&mut Self, char) -> Result<(), ParseError<R::Error>>,
+}
 impl<R: Renderer> Parser<R> {
+    // type Result<T> = Result<T, ParseError<R::Error>>;
     pub fn new(renderer: R) -> Self {
         Self {
-            padding: None,
-            current_state: ParserState::Normal,
-            previous_char: None,
-            current_text: String::new(),
-            current_token: None,
             renderer,
+            current_text: String::new(),
+            current_token: String::with_capacity(3),
+            previous_char: None,
+            inline_style_tokens: Vec::new(),
+            mode_func: Self::analyse_text,
         }
     }
-    pub fn push(&mut self, text: &str) -> renderer::Result<(), R::BackendErrorType> {
-        match text.chars().find_map(|c| self.analyse_common_char(c).err()) {
-            Some(err) => Err(err),
-            None => Ok(())
-        }?;
-        self.print()?;
-        self.renderer.flush()
-    }
-    fn analyse_common_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
-        match self.current_state {
-            ParserState::CodeBlock => self.analyse_code_block_char(c),
-            ParserState::InlineCode => self.analyse_code_char(c),
-            ParserState::Normal => self.analyse_normal_char(c),
+    pub fn push(&mut self, text: &str) -> Result<(), ParseError<R::Error>> {
+        for c in text.chars() {
+            (self.mode_func)(self, c)?;
         }
+        self.push_current_text()?;
+        Ok(self.renderer.flush()?)
     }
-    fn analyse_code_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
-        match (c, self.previous_char) {
-            ('`', Some(prevc)) if prevc.is_whitespace() => {
-                self.current_text.push(c);
-                self.previous_char = Some(c);
-            },
-            ('`', _) => {
-                self.renderer.print_text(&self.current_text)?;
-                self.renderer.pop_style()?;
-                self.current_text.clear();
-                self.current_state = ParserState::Normal;
-            },
-            _ => {
-                self.current_text.push(c);
-                self.previous_char = Some(c);
-            },
-        }
-        Ok(())
-    }
-    fn analyse_code_block_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
-        Ok(())
-    }
-    fn analyse_normal_char(&mut self, c: char) -> renderer::Result<(), R::BackendErrorType> {
+    fn analyse_text(&mut self, c: char) -> Result<(), ParseError<R::Error>> {
         match c {
             '\n' => {
-                self.renderer.newline()?;
-                self.padding = Some(String::new());
-                self.current_token = None;
-            },
-            // ' ' if self.padding.is_some() => {
-            //     self.padding.as_mut().unwrap().push(c);
-            //     Ok(())
-            // },
-            // '#' if self.padding.map(String::is_empty) == Some(true) => {
-            //     self.renderer
-            //     self.current_token.push(c);
-            //     Ok(())
-            // },
-            '*' | '_' | '`' => {
-                let last_char_token = self.current_token.as_ref().map(|token| token.chars().last()).flatten();
-                match last_char_token {
-                    Some(last_char) if last_char == c => self.current_token.as_mut().unwrap().push(c),
-                    _ => {
-                        if let Some(token) = self.current_token.take() {
-                            self.current_text.push_str(&token);
-                        }
-                        self.current_token = Some(char_to_string(c));
-                    }
-                }
+                self.apply_text_token(c, false)?;
+                self.push_current_text()?;
+                self.renderer.push_token(token::Token::Newline)?;
+                self.previous_char = None;
             }
-            c => {
-                self.apply_modifier(Some(c))?;
+            '*' | '_' | '`' => {
+                self.current_token.push(c);
+            }
+            '-' | '#' if self.previous_char.is_none() => self.current_token.push(c),
+            _ => {
+                self.apply_text_token(c, true)?;
+                self.previous_char = Some(c);
+            }
+        }
+        
+        Ok(())
+    }
+    fn analyse_code_block(&mut self, c: char) -> Result<(), ParseError<R::Error>> {
+        match c {
+            '\n' => {
+                self.apply_code_token(c)?;
+                self.push_current_text()?;
+                self.renderer.push_token(token::Token::Newline)?;
+                self.previous_char = None;
+            }
+            '`' if self.previous_char.is_none() => self.current_token.push(c),
+            _ => {
+                self.apply_code_token(c)?;
                 self.current_text.push(c);
                 self.previous_char = Some(c);
             }
         }
         Ok(())
     }
-
-    fn apply_modifier(&mut self, current_char: Option<char>) -> renderer::Result<(), R::BackendErrorType> {
-        let token = match self.current_token.take() {
-            Some(token) => token,
-            None => return Ok(())
-        };
-        let left = self.previous_char.map(char::is_whitespace);
-        let right = current_char.map(char::is_whitespace);
-
-        match (left, right) {
-            (None | Some(true), Some(false)) => { // Enter style
-
+    fn apply_code_token(&mut self, _: char) -> Result<(), ParseError<R::Error>> {
+        if self.current_token == "```" {
+            self.current_token.clear();
+            self.mode_func = Self::analyse_text;
+            self.renderer.push_token(token::Token::EndCode)?;
+        }
+        
+        return Ok(());
+    }
+    fn apply_text_token(&mut self, current_char: char, print_current_char: bool) -> Result<(), ParseError<R::Error>> {
+        'skip: {
+            if self.current_token.is_empty() {
+                break 'skip;
             }
-            (Some(false), Some(true)) => { // Exit style
 
-            }
-            (_,_) => {
-                self.current_text.push_str(&token);
-                if let Some(c) = current_char {
-                    self.current_text.push(c);
+            if self.previous_char.is_none() && !self.current_token.is_empty() {
+                if self.current_token == "```" {
+                    self.renderer.push_token(token::Token::BeginCode)?;
+                    self.current_token.clear();
+                    self.mode_func = Self::analyse_code_block;
+                    return Ok(());
+                } else if self.current_token.len() >= 3 && current_char == '\n' && (self.current_token.chars().all(|c| c == '-') || self.current_token.chars().all(|c| c == '_')) {
+                    self.renderer.push_token(token::Token::Line)?;
+                    self.current_token.clear();
+                    return Ok(());
+                } else if self.current_token.chars().all(|c| c == '#' ) && current_char == ' ' {
+                    let level = self.current_token.len().into();
+                    self.renderer.push_token(token::Token::Heading(level))?;
+                    self.current_token.clear();
+                    return Ok(());
                 }
+                self.previous_char = self.current_token.chars().last();
             }
+
+            let is_begin = self.previous_char.map(|c| !c.is_alphanumeric()) == Some(true) || self.previous_char == None;
+            let is_end = !current_char.is_alphanumeric(); // note: newline MUST resets state, so no need to check
+            if is_begin == is_end && is_begin == false {
+                break 'skip;
+            }
+            let inline_style = match self.current_token.as_str() {
+                "*" => token::InlineStyleToken::OneStar,
+                "**" => token::InlineStyleToken::TwoStars,
+                "***" => token::InlineStyleToken::ThreeStars,
+                "_" => token::InlineStyleToken::OneDash,
+                "__" => token::InlineStyleToken::TwoDashes,
+                "`" => token::InlineStyleToken::OneQuote,
+                _ => break 'skip,
+            };
+            let inline_style = match self.inline_style_tokens.last() {
+                Some(v) if v == &inline_style => token::Marker::End(inline_style),
+                _ => token::Marker::Begin(inline_style),
+            };
+            match &inline_style {
+                token::Marker::Begin(inline_style) => self.inline_style_tokens.push(inline_style.clone()),
+                token::Marker::End(_) => { self.inline_style_tokens.pop(); },
+            }
+            self.push_current_text()?;
+            self.renderer.push_token(token::Token::InlineStyle(inline_style))?;
+            self.current_token.clear();
+        }
+        if !self.current_token.is_empty() {
+            self.current_text.push_str(&self.current_token);
+            self.current_token.clear();
+        }
+        if print_current_char {
+            self.current_text.push(current_char);
         }
         Ok(())
     }
-    fn pop_style(&mut self) -> renderer::Result<(), R::BackendErrorType> {
-        self.print()?;
-        self.renderer.pop_style()
+    pub fn end_of_document(&mut self) -> Result<(), ParseError<R::Error>> {
+        self.push_current_text()?;
+        self.renderer.push_token(token::Token::EndDocument)?;
+        Ok(())
     }
-    fn is_normal(&self) -> bool {
-        self.current_state == ParserState::Normal
-    }
-    
-    fn print(&mut self) -> renderer::Result<(), R::BackendErrorType> {
+
+    fn push_current_text(&mut self) -> Result<(), ParseError<R::Error>> {
         if !self.current_text.is_empty() {
-            self.renderer.print_text(&self.current_text)?;
-            self.current_text.clear();
+            let mut s = String::new();
+            std::mem::swap(&mut s, &mut self.current_text);
+            self.renderer.push_token(token::Token::Text(s))?
         }
         Ok(())
     }
-    fn flush(&mut self, flush_io: bool) -> renderer::Result<(), R::BackendErrorType> {
-        self.print()
-    }
-    pub fn end_of_document(&mut self) -> renderer::Result<(), R::BackendErrorType> {
-        self.flush(true)
-    }
-    
 }
