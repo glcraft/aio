@@ -3,5 +3,5 @@
 
 /.vscode
 
-/config.yml
+/creds.yml
 /test*.md
