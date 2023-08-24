@@ -5,11 +5,11 @@ use bytes::Bytes;
 use flatten_stream::FlattenTrait;
 
 use serde::{Serialize, Deserialize};
-use tokio_stream::{Stream, StreamExt};
+use tokio_stream::StreamExt;
 use crate::args;
 use self::config::Prompt;
 
-use super::{ResultStream, ResultRun, Error, BoxedError};
+use super::{ResultRun, Error};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -35,6 +35,7 @@ pub struct Message {
     pub content: String,
 }
 
+#[allow(dead_code)]
 impl Message {
     pub fn format_content(mut self, args: &crate::args::Args) -> Self {
         self.content = crate::config::format_content(&self.content, args).to_string();
@@ -78,6 +79,7 @@ pub struct ChatRequest {
     #[serde(flatten)]
     parameters: ChatRequestParameters,
 }
+#[allow(dead_code)]
 impl ChatRequest {
     pub fn new(model: String) -> Self {
         Self {
@@ -115,24 +117,24 @@ impl Default for ChatRequest {
 
 #[derive(Debug, Deserialize)]
 struct Delta {
-    pub role: Option<Role>,
+    // pub role: Option<Role>,
     pub content: Option<String>
 }
 #[derive(Debug, Deserialize)]
 struct Choice {
     pub delta: Delta,
-    pub index: u32,
-    pub finish_reason: Option<String>,
+    // pub index: u32,
+    // pub finish_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum ChatResponse {
     Message{
-        id: String,
-        object: String,
-        created: u64,
-        model: String,
+        // id: String,
+        // object: String,
+        // created: u64,
+        // model: String,
         choices: Vec<Choice>,
     },
     #[serde(rename = "[DONE]")]
@@ -272,7 +274,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
         .flatten_stream()
         .map(|v| {
             let v = v?;
-            let chat_resp = ChatResponse::from_slice(&v);
+            let chat_resp = ChatResponse::from_bytes(v);
             match chat_resp {
                 Ok(resp) => Ok(resp),
                 Err(e) => Err(Error::Boxed(Box::new(e)))

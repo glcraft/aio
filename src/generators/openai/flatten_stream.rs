@@ -2,7 +2,6 @@ use tokio_stream::Stream;
 
 pub trait FlattenTrait: Stream
 {
-    // type Item: Stream;
     fn flatten_stream(self) -> Flatten<Self>
     where 
         Self: Sized,
@@ -76,11 +75,6 @@ where
 
 
 impl<St: ?Sized> FlattenTrait for St where St: Stream {}
-// impl<St: ?Sized, It> FlattenTrait for St 
-// where 
-//     It: Iterator,
-//     St: Stream<Item = Result<It, super::Error>>,
-// {}
 
 /// Implementation of Flatten for Result of Iterator
 impl<It, E, St> Stream for Flatten<St>
@@ -91,7 +85,6 @@ where
     type Item = Result<<It as Iterator>::Item, E>;
     fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<<Self as Stream>::Item>> {
         use std::task::Poll::*;
-        use std::pin::pin;
         
         match self.as_mut().project().current {
             Some(Ok(ref mut item)) => {

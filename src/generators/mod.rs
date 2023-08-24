@@ -12,6 +12,5 @@ pub enum Error {
     Custom(Cow<'static, str>)
 }
 
-pub type BoxedError = Box<dyn std::error::Error>;
 pub type ResultStream = Result<String, Error>;
 pub type ResultRun = Result<Pin<Box<dyn tokio_stream::Stream<Item = ResultStream>>>, Error>;

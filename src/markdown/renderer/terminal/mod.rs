@@ -84,7 +84,6 @@ impl Renderer for TerminalRenderer {
                 *mode = Mode::default();
                 queue!(std::io::stdout(), crossterm::style::Print("\n"))?;
             },
-            _ => todo!("not implemented"),
         }
         Ok(())
     }

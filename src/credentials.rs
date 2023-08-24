@@ -1,4 +1,3 @@
-use std::path::Path;
 use serde::Deserialize;
 use crate::{
     serde_io::DeserializeExt,

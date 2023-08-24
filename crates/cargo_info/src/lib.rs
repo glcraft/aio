@@ -6,7 +6,6 @@ use serde::Deserialize;
 struct CargoPackage {
     name: String,
     version: String,
-    edition: String,
 }
 #[derive(Debug, Deserialize)]
 struct CargoInfo {
