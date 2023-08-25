@@ -98,5 +98,5 @@ jobs:
             aarch64-windows-msvc:aio-aarch64-pc-windows-msvc/aio-aarch64-pc-windows-msvc
             x86_64-windows-msvc:aio-x86_64-pc-windows-msvc/aio-x86_64-pc-windows-msvc
           tag: v${{ steps.version.outputs.version }}
-          name: CDDIO-v${{ steps.version.outputs.version }}
+          name: aio-v${{ steps.version.outputs.version }}
           allow_override: true
