@@ -89,14 +89,14 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: >
-            aarch64-linux-gnu:aio-aarch64-unknown-linux-gnu/aio-aarch64-unknown-linux-gnu
-            x86_64-linux-gnu:aio-x86_64-unknown-linux-gnu/aio-x86_64-unknown-linux-gnu
-            aarch64-linux-musl:aio-aarch64-unknown-linux-musl/aio-aarch64-unknown-linux-musl
-            x86_64-linux-musl:aio-x86_64-unknown-linux-musl/aio-x86_64-unknown-linux-musl
-            aarch64-macos:aio-aarch64-apple-darwin/aio-aarch64-apple-darwin
-            x86_64-macos:aio-x86_64-apple-darwin/aio-x86_64-apple-darwin
-            aarch64-windows-msvc:aio-aarch64-pc-windows-msvc/aio-aarch64-pc-windows-msvc
-            x86_64-windows-msvc:aio-x86_64-pc-windows-msvc/aio-x86_64-pc-windows-msvc
+            aio-aarch64-unknown-linux-gnu/aio-aarch64-unknown-linux-gnu
+            aio-x86_64-unknown-linux-gnu/aio-x86_64-unknown-linux-gnu
+            aio-aarch64-unknown-linux-musl/aio-aarch64-unknown-linux-musl
+            aio-x86_64-unknown-linux-musl/aio-x86_64-unknown-linux-musl
+            aio-aarch64-apple-darwin/aio-aarch64-apple-darwin
+            aio-x86_64-apple-darwin/aio-x86_64-apple-darwin
+            aio-aarch64-pc-windows-msvc/aio-aarch64-pc-windows-msvc.exe
+            aio-x86_64-pc-windows-msvc/aio-x86_64-pc-windows-msvc.exe
           tag: v${{ steps.version.outputs.version }}
           name: aio-v${{ steps.version.outputs.version }}
           allow_override: true
