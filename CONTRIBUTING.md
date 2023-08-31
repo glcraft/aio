@@ -12,7 +12,7 @@ If you have ideas for new features, enhancements, or changes that you believe wo
 
 ## Contributing Code
 
-While we currently don't accept external code contributions, we're always open to discussions about potential changes or additions. If you have a significant improvement or feature in mind, please start by opening an issue to discuss it. 
+We welcome contributions from the community to enhance the functionality and features of the `aio` project. If you have improvements, bug fixes, or new features to propose, we encourage you to contribute by [Pull Requesting](https://github.com/glcraft/aio/pulls)!
 
 ## Getting Involved
 
