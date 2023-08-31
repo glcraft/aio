@@ -18,9 +18,9 @@ The configuration file allows you to define prompts and their associated setting
 
 This document will guide you through setting up your prompts and using the configuration file effectively.
 
-## Usage
+By default, aio will try to read the configuration file from `~/.config/aio/config.yaml`. You can also specify the path to the configuration file using the `--config-path` argument. For example: `aio --config-path ./config.yaml`.
 
-By default, aio will try to read the configuration file from `~/.config/aio/config.yaml`. You can also specify the path to the configuration file using the `--config-path` argument. for example: `aio --config-path ./config.yaml`.
+## Usage
 
 ### OpenAI 
 
