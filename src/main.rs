@@ -4,6 +4,7 @@ mod markdown;
 mod config;
 mod credentials;
 mod serde_io;
+use std::borrow::Cow;
 
 use arguments as args;
 use clap::Parser;
@@ -20,6 +21,18 @@ macro_rules! raise_str {
     };
 }
 
+fn resolve_path(path: &str) -> Cow<str> {
+    if path.starts_with("~/") {
+        #[cfg(unix)]
+        let home = std::env::var("HOME").expect("Failed to resolve home path");
+        #[cfg(windows)]
+        let home = std::env::var("USERPROFILE").expect("Failed to resolve user profile path");
+        Cow::Owned(format!("{}{}{}", home, std::path::MAIN_SEPARATOR, &path[2..]))
+    } else {
+        Cow::Borrowed(path)
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), String> {
     let term_renderer = markdown::TerminalRenderer::new();
@@ -27,11 +40,11 @@ async fn main() -> Result<(), String> {
 
     let args = args::Args::parse();
     let config = raise_str!(
-        config::Config::from_yaml_file(&args.config_path),
+        config::Config::from_yaml_file(resolve_path(&args.config_path).as_ref()),
         "Failed to parse config file: {}"
     );
     let creds = raise_str!(
-        credentials::Credentials::from_yaml_file(&args.creds_path),
+        credentials::Credentials::from_yaml_file(resolve_path(&args.creds_path).as_ref()),
         "Failed to parse credentials file: {}"
     );
 
