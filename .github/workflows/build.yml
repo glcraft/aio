@@ -95,8 +95,8 @@ jobs:
             aio-x86_64-unknown-linux-musl/aio-x86_64-unknown-linux-musl
             aio-aarch64-apple-darwin/aio-aarch64-apple-darwin
             aio-x86_64-apple-darwin/aio-x86_64-apple-darwin
-            aio-aarch64-pc-windows-msvc/aio-aarch64-pc-windows-msvc
-            aio-x86_64-pc-windows-msvc/aio-x86_64-pc-windows-msvc
+            aio-aarch64-pc-windows-msvc/aio-aarch64-pc-windows-msvc.exe
+            aio-x86_64-pc-windows-msvc/aio-x86_64-pc-windows-msvc.exe
           tag: v${{ steps.version.outputs.version }}
           name: aio-v${{ steps.version.outputs.version }}
           allow_override: true
