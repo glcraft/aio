@@ -15,6 +15,7 @@ Welcome to the README for the `aio` command line tool – your gateway to seamle
   - [Configuration](#configuration)
   - [Credentials](#credentials)
   - [Examples](#examples)
+  - [Aliases](#aliases)
   - [Contributing](#contributing)
 
 ## Introduction
@@ -107,6 +108,17 @@ Here are a few examples to get you started:
    ```sh
    aio --engine openai:command "Extract a compressed archive `./archive.tar.gz` to the current directory."
    ```
+
+## Aliases
+
+The whole command can be long to type in. You can use aliases in your shell to shorten the command.
+```sh
+alias ask='aio --engine openai:ask'
+alias command='aio --engine openai:command'
+
+ask "Write an informative article about space exploration."
+command "Extract a compressed archive `./archive.tar.gz` to the current directory."
+```
 
 ## Contributing
 
