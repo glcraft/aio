@@ -63,7 +63,7 @@ openai:
 
 ## Sample Prompts
 
-Here are examples of prompt definitions within the sample configuration file you can find in the repository:
+Here are examples of prompt definitions within [the sample configuration file](../config.yml) you can find in the repository:
 
 1. **Command Prompt**:
    - System Message: Provides instructions for formatting a command.
