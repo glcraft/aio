@@ -126,10 +126,10 @@ command "Extract a compressed archive `./archive.tar.gz` to the current director
 
 ## Contributing
 
-We welcome contributions from the community to enhance the `aio` project. If you're interested in making improvements, fixing issues, or adding new features, feel free to [contribute](https://github.com/yourusername/aio/blob/main/CONTRIBUTING.md).
+We welcome contributions from the community to enhance the `aio` project. If you're interested in making improvements, fixing issues, or adding new features, feel free to contribute.
 
 By contributing to `aio`, you become part of an open-source community working to improve AI interactions in the terminal.
 
-For more detailed guidelines, please refer to our [Contribution Guide](./docs/CONTRIBUTING.md).
+For more detailed guidelines, please refer to our [Contribution Guide](./CONTRIBUTING.md).
 
 We appreciate your contributions and look forward to collaborating with you!
