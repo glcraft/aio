@@ -63,7 +63,7 @@ To install `aio`, follow these steps:
 Using `aio` is straightforward. In your terminal, simply invoke the tool with appropriate arguments to communicate with AI engines and receive formatted responses.
 
 ```sh
-aio --engine openai:ask --input "Write an informative article about space exploration."
+aio --engine openai:ask "Write an informative article about space exploration."
 ```
 
 ## Arguments
@@ -74,9 +74,11 @@ The `aio` command line tool supports the following arguments:
 
 - `--creds_path`: Path to the credentials file. Default is `~/.config/aio/creds.yaml`.
 
-- `--engine`: Name of the AI engine to use. You can optionally append a custom prompt name from the [configuration file](#configuration) (e.g., `openai:command`).
+- `-e|--engine`: Name of the AI engine to use. You can optionally append a custom prompt name from the [configuration file](#configuration) (e.g., `openai:command`).
 
-- `--input`: User text prompt that will be used for interaction with the AI engine.
+- `input`: User text prompt that will be used for interaction with the AI engine.
+
+- `-h|--help`: Display the help message.
 
 Note : `aio` can't read input from stdin for now but will in the future.
 
@@ -94,12 +96,12 @@ Here are a few examples to get you started:
 
 1. Generate a creative story using the OpenAI engine:
    ```sh
-   aio --engine openai --input "Once upon a time in a distant galaxy..."
+   aio --engine openai "Once upon a time in a distant galaxy..."
    ```
 
 2. Ask for a command to extract a compressed archive:
    ```sh
-   aio --engine openai:command --input "Extract a compressed archive `./archive.tar.gz` to the current directory."
+   aio --engine openai:command "Extract a compressed archive `./archive.tar.gz` to the current directory."
    ```
 
 ## Contributing
