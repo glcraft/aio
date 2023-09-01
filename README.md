@@ -2,6 +2,10 @@
 
 Welcome to the README for the `aio` command line tool – your gateway to seamless communication with AI engines via the terminal. This tool streamlines interactions with AI APIs, including the OpenAI API, and conveniently formats the results using integrated markdown formatting. Whether you're seeking information, generating content, or experimenting with AI, `aio` has you covered.
 
+<p align="center">
+  <img src="./docs/output2.gif" style="border-radius: 10px;"/>
+</p>
+
 ## Table of Contents
 
 - [aio - Streamlined AI Terminal Interactions](#aio---streamlined-ai-terminal-interactions)
