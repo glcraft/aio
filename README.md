@@ -33,11 +33,15 @@ To install `aio`, follow these steps:
 
 2. Extract the downloaded archive.
 
-3. (optional) Copy the `aio` executable to your `PATH` (for example, `/usr/local/bin`).
-    ```sh
-    # sudo may be required
-    sudo cp aio /usr/local/bin
-    ```
+3. (optional) Add the path of the directory where the binary was extracted to your `PATH`. Write this in your `~/.bashrc` or `~/.zshrc` (or `~/.zshenv`):
+   ```sh
+   PATH=/path/to/aio/bin:$PATH
+   ```
+   or you can copy the `aio` executable into your `/usr/local/bin`.
+   ```sh
+   # sudo may be required
+   sudo cp aio /usr/local/bin
+   ```
 
 ### Install from source
 
