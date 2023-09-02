@@ -1,13 +1,14 @@
 mod markdown;
 mod raw;
 
+use anyhow::Result;
+
 use raw::RawFormater;
 pub type MarkdownFormatter = markdown::Parser<markdown::TerminalRenderer>;
 
 pub trait Formatter {
-    type Error;
-    fn push(&mut self, text: &str) -> Result<(), Self::Error>;
-    fn end_of_document(&mut self) -> Result<(), Self::Error> {
+    fn push(&mut self, text: &str) -> Result<()>;
+    fn end_of_document(&mut self) -> Result<()> {
         Ok(())
     }
 }

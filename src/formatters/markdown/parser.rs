@@ -2,6 +2,7 @@ use thiserror::Error;
 use super::super::Formatter;
 use super::renderer::Renderer;
 use super::token;
+use anyhow::Result;
 
 #[derive(Debug, Error)]
 pub enum ParseError<RendererErr> {
@@ -19,15 +20,14 @@ pub struct Parser<R: Renderer> {
 }
 
 impl<R: Renderer> Formatter for Parser<R> {
-    type Error = ParseError<R::Error>;
-    fn push(&mut self, text: &str) -> Result<(), Self::Error> {
+    fn push(&mut self, text: &str) -> Result<()> {
         for c in text.chars() {
             (self.mode_func)(self, c)?;
         }
         self.push_current_text()?;
         Ok(self.renderer.flush()?)
     }
-    fn end_of_document(&mut self) -> Result<(), Self::Error> {
+    fn end_of_document(&mut self) -> Result<()> {
         self.push_current_text()?;
         self.renderer.push_token(token::Token::EndDocument)?;
         Ok(())

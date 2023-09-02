@@ -1,11 +1,11 @@
-
-pub struct RawFormater;
+use anyhow::Result;
 use super::Formatter;
 use std::io::Write;
 
+pub struct RawFormater;
+
 impl Formatter for RawFormater {
-    type Error = std::io::Error;
-    fn push(&mut self, text: &str) -> Result<(), Self::Error> {
-        writeln!(std::io::stdout(), "{}", text)
+    fn push(&mut self, text: &str) -> Result<()> {
+        todo!()
     }
 }
