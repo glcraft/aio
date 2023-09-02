@@ -6,6 +6,8 @@ pub struct RawFormater;
 
 impl Formatter for RawFormater {
     fn push(&mut self, text: &str) -> Result<()> {
-        todo!()
+        write!(std::io::stdout(), "{}", text)?;
+        std::io::stdout().flush()?;
+        Ok(())
     }
 }
