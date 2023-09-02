@@ -15,7 +15,6 @@ bytes = "1.1.0"
 clap = { version = "4.2.2", features = ["derive"] }
 crossterm = "0.26.1"
 lazy_static = "1.4.0"
-markdown = "0.3.0"
 num-traits = "0.2"
 pin-project = "1.1"
 regex = "1.7.3"
