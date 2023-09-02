@@ -75,7 +75,7 @@ jobs:
 
   release:
     needs: build
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -85,18 +85,12 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v2
       - name: Upload to Release
-        uses: meeDamian/github-release@2.0
+        uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: >
-            aio-aarch64-unknown-linux-gnu/aio-aarch64-unknown-linux-gnu
-            aio-x86_64-unknown-linux-gnu/aio-x86_64-unknown-linux-gnu
-            aio-aarch64-unknown-linux-musl/aio-aarch64-unknown-linux-musl
-            aio-x86_64-unknown-linux-musl/aio-x86_64-unknown-linux-musl
-            aio-aarch64-apple-darwin/aio-aarch64-apple-darwin
-            aio-x86_64-apple-darwin/aio-x86_64-apple-darwin
-            aio-aarch64-pc-windows-msvc/aio-aarch64-pc-windows-msvc.exe
-            aio-x86_64-pc-windows-msvc/aio-x86_64-pc-windows-msvc.exe
-          tag: v${{ steps.version.outputs.version }}
-          name: aio-v${{ steps.version.outputs.version }}
-          allow_override: true
+            aio-*/aio-*
+          fail_on_unmatched_files: true
+          tag_name: v${{ steps.version.outputs.version }}
+          name: aio v${{ steps.version.outputs.version }}
+          body: ${{ github.event.pull_request.body }}
