@@ -1,7 +1,12 @@
 [package]
 name = "aio"
+description = "Streamlined AI Terminal Interactions"
 version = "0.3.0"
 edition = "2021"
+authors = ["Gabin Lefranc <gabin.lefranc@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+license-file = "LICENSE.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
