@@ -1,6 +1,6 @@
 pub mod arguments;
 mod generators;
-mod markdown;
+mod formatters;
 mod config;
 mod credentials;
 mod serde_io;
@@ -35,8 +35,7 @@ fn resolve_path(path: &str) -> Cow<str> {
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let term_renderer = markdown::TerminalRenderer::new();
-    let mut md_parser = markdown::Parser::new(term_renderer);
+    let mut md_parser = formatters::new_markdown_formatter();
 
     let args = args::Args::parse();
     let config = raise_str!(
