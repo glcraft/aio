@@ -1,5 +1,5 @@
-use crate::markdown::token::Token;
-use crate::markdown::renderer::terminal::utils;
+use super::super::super::token::Token;
+use super::super::utils;
 use crossterm::{
     queue, 
     ErrorKind,

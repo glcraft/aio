@@ -1,6 +1,8 @@
 use thiserror::Error;
+use super::super::Formatter;
 use super::renderer::Renderer;
 use super::token;
+use anyhow::Result;
 
 #[derive(Debug, Error)]
 pub enum ParseError<RendererErr> {
@@ -16,6 +18,22 @@ pub struct Parser<R: Renderer> {
     inline_style_tokens: Vec<token::InlineStyleToken>,
     mode_func: fn(&mut Self, char) -> Result<(), ParseError<R::Error>>,
 }
+
+impl<R: Renderer> Formatter for Parser<R> {
+    fn push(&mut self, text: &str) -> Result<()> {
+        for c in text.chars() {
+            (self.mode_func)(self, c)?;
+        }
+        self.push_current_text()?;
+        Ok(self.renderer.flush()?)
+    }
+    fn end_of_document(&mut self) -> Result<()> {
+        self.push_current_text()?;
+        self.renderer.push_token(token::Token::EndDocument)?;
+        Ok(())
+    }
+}
+
 impl<R: Renderer> Parser<R> {
     // type Result<T> = Result<T, ParseError<R::Error>>;
     pub fn new(renderer: R) -> Self {
@@ -27,13 +45,6 @@ impl<R: Renderer> Parser<R> {
             inline_style_tokens: Vec::new(),
             mode_func: Self::analyse_text,
         }
-    }
-    pub fn push(&mut self, text: &str) -> Result<(), ParseError<R::Error>> {
-        for c in text.chars() {
-            (self.mode_func)(self, c)?;
-        }
-        self.push_current_text()?;
-        Ok(self.renderer.flush()?)
     }
     fn analyse_text(&mut self, c: char) -> Result<(), ParseError<R::Error>> {
         match c {
@@ -141,11 +152,7 @@ impl<R: Renderer> Parser<R> {
         }
         Ok(())
     }
-    pub fn end_of_document(&mut self) -> Result<(), ParseError<R::Error>> {
-        self.push_current_text()?;
-        self.renderer.push_token(token::Token::EndDocument)?;
-        Ok(())
-    }
+    
 
     fn push_current_text(&mut self) -> Result<(), ParseError<R::Error>> {
         if !self.current_text.is_empty() {
