@@ -1,5 +1,7 @@
 mod markdown;
+mod raw;
 
+use raw::RawFormater;
 pub type MarkdownFormatter = markdown::Parser<markdown::TerminalRenderer>;
 
 pub trait Formatter {
@@ -12,4 +14,7 @@ pub trait Formatter {
 
 pub fn new_markdown_formatter() -> MarkdownFormatter {
     markdown::Parser::new(markdown::TerminalRenderer::new())
+}
+pub fn new_raw_formatter() -> RawFormater {
+    RawFormater
 }
