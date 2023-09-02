@@ -6,11 +6,12 @@ mod credentials;
 mod serde_io;
 use std::borrow::Cow;
 
-use arguments as args;
 use clap::Parser;
 use serde_io::DeserializeExt;
 use smartstring::alias::String;
 use tokio_stream::StreamExt;
+use arguments as args;
+use formatters::Formatter;
 
 macro_rules! raise_str {
     ($expr:expr) => {
