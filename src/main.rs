@@ -36,6 +36,7 @@ fn resolve_path(path: &str) -> Cow<str> {
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
+    //test
     let args = args::Args::parse();
     let config = raise_str!(
         config::Config::from_yaml_file(resolve_path(&args.config_path).as_ref()),
