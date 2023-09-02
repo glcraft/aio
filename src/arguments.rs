@@ -1,4 +1,21 @@
-use clap::Parser;
+use std::fmt::Display;
+
+use clap::{Parser, ValueEnum};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum FormatterChoice {
+    Markdown,
+    Raw,
+}
+
+impl Display for FormatterChoice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FormatterChoice::Markdown => write!(f, "markdown"),
+            FormatterChoice::Raw => write!(f, "raw"),
+        }
+    }
+}
 
 /// Program to communicate with large language models and AI API 
 #[derive(Parser, Debug)]
@@ -16,6 +33,11 @@ pub struct Args {
     /// (ex: openai:command)
     #[arg(long, short)]
     pub engine: String,
+    /// Formatter
+    /// 
+    /// Possible values: markdown, raw
+    #[arg(long, short, default_value_t = FormatterChoice::Markdown)]
+    pub formatter: FormatterChoice,
     /// User text prompt
     pub input: String,
 }

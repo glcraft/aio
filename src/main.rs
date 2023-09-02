@@ -36,8 +36,6 @@ fn resolve_path(path: &str) -> Cow<str> {
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let mut md_parser = formatters::new_markdown_formatter();
-
     let args = args::Args::parse();
     let config = raise_str!(
         config::Config::from_yaml_file(resolve_path(&args.config_path).as_ref()),
@@ -47,6 +45,11 @@ async fn main() -> Result<(), String> {
         credentials::Credentials::from_yaml_file(resolve_path(&args.creds_path).as_ref()),
         "Failed to parse credentials file: {}"
     );
+
+    let mut formatter: Box<dyn Formatter> = match args.formatter {
+        args::FormatterChoice::Markdown => Box::new(formatters::new_markdown_formatter()),
+        args::FormatterChoice::Raw => Box::new(formatters::new_raw_formatter()),
+    };
 
     let engine = args.engine
         .find(':')
@@ -59,11 +62,11 @@ async fn main() -> Result<(), String> {
 
     loop {
         match stream.next().await {
-            Some(Ok(token)) => raise_str!(md_parser.push(&token), "Failed to parse markdown: {}"),
+            Some(Ok(token)) => raise_str!(formatter.push(&token), "Failed to parse markdown: {}"),
             Some(Err(e)) => Err(e.to_string())?,
             None => break,
         }
     }
-    raise_str!(md_parser.end_of_document(), "Failed to end markdown: {}");
+    raise_str!(formatter.end_of_document(), "Failed to end markdown: {}");
     Ok(())
 }
