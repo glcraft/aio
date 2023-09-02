@@ -8,6 +8,17 @@ pub enum FormatterChoice {
     Raw,
 }
 
+impl Default for FormatterChoice {
+    fn default() -> Self {
+        use std::io::IsTerminal;
+        if std::io::stdout().is_terminal() {
+            FormatterChoice::Markdown
+        } else {
+            FormatterChoice::Raw
+        }
+    }
+}
+
 impl Display for FormatterChoice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -36,7 +47,7 @@ pub struct Args {
     /// Formatter
     /// 
     /// Possible values: markdown, raw
-    #[arg(long, short, default_value_t = FormatterChoice::Markdown)]
+    #[arg(long, short, default_value_t = Default::default())]
     pub formatter: FormatterChoice,
     /// User text prompt
     pub input: String,
