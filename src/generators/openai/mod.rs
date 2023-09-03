@@ -253,7 +253,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
     };
 
     // Send a request
-    let chat_request = ChatRequest::new("gpt-3.5-turbo".to_string())
+    let chat_request = ChatRequest::new(prompt.model.unwrap_or_else(|| "gpt-3.5-turbo".into()))
         .add_messages(prompt.messages)
         .set_parameters(prompt.parameters.into())
         .into_stream();
