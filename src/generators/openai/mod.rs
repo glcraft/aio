@@ -170,7 +170,15 @@ impl ChatResponse {
         // eprintln!("from_bytes|1: {}", String::from_utf8_lossy(&bytes));
         if !bytes.starts_with(b"data: ") {
             use serde::de::Error;
-            return Err(serde_json::Error::custom("Not a data line"));
+            let json = match serde_json::from_slice::<serde_json::Value>(&bytes) {
+                Ok(v) => v,
+                _ => return Err(serde_json::Error::custom("Not a data line")),
+            };
+            return if let Some(error) = json.get("error") {
+                Err(serde_json::Error::custom(format!("OpenAI Error (type: {}, code: {}): {}", error["type"].as_str().unwrap_or(""), error["code"].as_str().unwrap_or(""), error["message"].as_str().unwrap_or(""))))
+            } else {
+                Err(serde_json::Error::custom("Json found but unknown format"))
+            }
         }
         let bytes = &bytes[6..];
         // eprintln!("from_bytes|2: {}", String::from_utf8_lossy(&bytes));
