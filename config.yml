@@ -13,6 +13,7 @@ openai:
         presence-penalty: 0 
         max-tokens: 200
     - name: ask
+      model: gpt-4
       messages: 
         - role: system
           content: You are ChatGPT, a powerful conversational chatbot. Answer to me in informative way unless I tell you otherwise. Format the text in markdown.
