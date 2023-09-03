@@ -4,8 +4,8 @@ use super::super::utils;
 use crossterm::{
     queue, 
     style::*,
-    ErrorKind,
 };
+use std::io::Error;
 use super::super::token;
 
 pub struct Header {
@@ -31,7 +31,7 @@ impl Header {
             ..Default::default()
         }
     }
-    pub fn init(&self) -> Result<(), ErrorKind> {
+    pub fn init(&self) -> Result<(), Error> {
         let line_length = self.header_width()?;
         self.styles.apply_styles()?;
         queue!(std::io::stdout(), 
@@ -45,11 +45,11 @@ impl Header {
                 acc + if let token::Token::Text(v) = token { v.len() } else { 0 }
             })
     }
-    pub fn push_token(&mut self, token: token::Token) -> Result<(), ErrorKind> {
+    pub fn push_token(&mut self, token: token::Token) -> Result<(), Error> {
         self.tokens.push(token);
         self.draw_text()
     }
-    fn draw_text(&mut self) -> Result<(), ErrorKind> {
+    fn draw_text(&mut self) -> Result<(), Error> {
         let pos_cursor = crossterm::cursor::position()?;
         let new_cursor_pos = (0.max((self.header_width()? - self.len() as isize) / 2) as u16 , pos_cursor.1);
         
@@ -68,7 +68,7 @@ impl Header {
         Ok(())
         
     }
-    fn header_width(&self) -> Result<isize, ErrorKind> {
+    fn header_width(&self) -> Result<isize, Error> {
         let term_width = crossterm::terminal::size()?.0 as isize;
         Ok(term_width / (1<<(self.level-1)))
     }

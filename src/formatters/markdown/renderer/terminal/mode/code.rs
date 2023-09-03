@@ -1,9 +1,7 @@
 use super::super::super::token::Token;
 use super::super::utils;
-use crossterm::{
-    queue, 
-    ErrorKind,
-};
+use crossterm::queue;
+use std::io::Error;
 pub struct Code {
     index: usize,
     language: Option<String>
@@ -24,10 +22,10 @@ impl Code {
         }
     }
     #[inline]
-    pub fn init(&self) -> Result<(), ErrorKind> {
+    pub fn init(&self) -> Result<(), Error> {
         Self::draw_code_separator(false)
     }
-    pub fn push_token(&mut self, token: Token) -> Result<(), ErrorKind> {
+    pub fn push_token(&mut self, token: Token) -> Result<(), Error> {
         match token {
             Token::Text(s) if self.index == 0 => {
                 self.push_language(&s);
@@ -52,7 +50,7 @@ impl Code {
     const fn counter_space() -> u16 {
         (utils::CODE_BLOCK_COUNTER_SPACE + utils::CODE_BLOCK_MARGIN * 2) as _
     }
-    fn draw_code_separator(sens: bool /* false: down, true: up */) -> Result<(), ErrorKind> {
+    fn draw_code_separator(sens: bool /* false: down, true: up */) -> Result<(), Error> {
         let current_line_pos = crossterm::cursor::position()?.1;
         queue!(std::io::stdout(), 
             crossterm::cursor::MoveTo(0, current_line_pos)
@@ -64,7 +62,7 @@ impl Code {
             crossterm::cursor::MoveDown(1),
         )
     }
-    fn draw_newline(&self) -> Result<(), ErrorKind> {
+    fn draw_newline(&self) -> Result<(), Error> {
         let line = format!("{3}{0:0>1$}{3}{2}{3}", 
             self.index, 
             utils::CODE_BLOCK_COUNTER_SPACE, 
