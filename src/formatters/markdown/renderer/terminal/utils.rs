@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 
-use super::{token, ErrorKind, queue};
+use super::{token, queue};
+use std::io::Error;
 
 
 pub const CODE_BLOCK_COUNTER_SPACE: usize = 3;
@@ -25,7 +26,7 @@ impl InlineStyles {
     pub fn new(default_style: crossterm::style::Attributes) -> Self {
         Self { styles: Vec::new(), default_style }
     }
-    fn apply_inline_style(&self, inline_style: &token::InlineStyleToken) -> Result<(), ErrorKind> {
+    fn apply_inline_style(&self, inline_style: &token::InlineStyleToken) -> Result<(), Error> {
         use crossterm::style::*;
         match inline_style {
             token::InlineStyleToken::OneStar => queue!(std::io::stdout(), SetAttribute(Attribute::Italic)),
@@ -36,7 +37,7 @@ impl InlineStyles {
             token::InlineStyleToken::OneQuote => queue!(std::io::stdout(), SetForegroundColor(Color::Yellow)),
         }
     }
-    pub fn apply_styles(&self) -> Result<(), ErrorKind> {
+    pub fn apply_styles(&self) -> Result<(), Error> {
         queue!(std::io::stdout(), 
             crossterm::style::ResetColor, 
             crossterm::style::SetAttribute(crossterm::style::Attribute::Reset), 
@@ -48,17 +49,17 @@ impl InlineStyles {
 
         Ok(())
     }
-    pub fn push_style(&mut self, style: token::InlineStyleToken) -> Result<(), ErrorKind> {
+    pub fn push_style(&mut self, style: token::InlineStyleToken) -> Result<(), Error> {
         self.styles.push(style);
         self.apply_styles()?;
         Ok(())
     }
-    pub fn pop_style(&mut self) -> Result<(), ErrorKind> {
+    pub fn pop_style(&mut self) -> Result<(), Error> {
         self.styles.pop();
         self.apply_styles()?;
         Ok(())
     }
-    pub fn reset_styles(&mut self) -> Result<(), ErrorKind> {
+    pub fn reset_styles(&mut self) -> Result<(), Error> {
         self.styles.clear();
         self.apply_styles()?;
         Ok(())
@@ -75,7 +76,7 @@ pub fn repeat_char(c: char, n: usize) -> String {
 }
 
 #[inline]
-pub fn draw_line() -> Result<(), ErrorKind> {
+pub fn draw_line() -> Result<(), Error> {
     lazy_static! {
         static ref LINE_STRING: String = repeat_char(CODE_BLOCK_LINE_CHAR[0], CODE_BLOCK_MARGIN.max(crossterm::terminal::size().unwrap_or_default().0 as usize));
     }

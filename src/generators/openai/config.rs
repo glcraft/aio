@@ -34,6 +34,7 @@ impl From<Parameters> for ChatRequestParameters {
 #[derive(Debug, Default, Deserialize)]
 pub struct Prompt {
     pub name: String,
+    pub model: Option<String>,
     pub messages: Vec<Message>,
     pub parameters: Parameters,
 }
@@ -41,7 +42,7 @@ pub struct Prompt {
 impl Prompt {
     pub fn from_input(input: &str) -> Self {
         Self {
-            name: "dumb".to_string(),
+            name: "noname".to_string(),
             messages: vec![Message {
                 role: super::Role::User,
                 content: input.into(),

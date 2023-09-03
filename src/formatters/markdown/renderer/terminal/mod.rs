@@ -1,10 +1,7 @@
 mod mode;
 mod utils;
 
-use crossterm::{
-    queue,
-    ErrorKind
-};
+use crossterm::queue;
 use std::io::Write;
 use super::token;
 use super::Renderer;
@@ -24,7 +21,7 @@ impl TerminalRenderer {
 }
 
 impl Renderer for TerminalRenderer {
-    type Error = ErrorKind;
+    type Error = std::io::Error;
     fn push_token(&mut self, style: token::Token) -> Result<(), Self::Error> {
         match (style, &mut self.mode) {
             (token::Token::Text(s), Mode::Text(_)) => {
