@@ -85,6 +85,12 @@ The `aio` command line tool supports the following arguments:
 
 - `-e|--engine`: Name of the AI engine to use. You can optionally append a custom prompt name from the [configuration file](#configuration) (e.g., `openai:command`).
 
+- `-f|--formatter`: Formatter to use. Possible values: 
+  - `markdown`: Parse the text response as markdown and format it in the console.
+  - `raw`: Doesn't parse the response text. Just displays the raw text response.
+  
+  By default the formatter is set to `markdown` if in terminal/tty, otherwise `raw`.
+
 - `input`: User text prompt that will be used for interaction with the AI engine.
 
 - `-h|--help`: Display the help message.
