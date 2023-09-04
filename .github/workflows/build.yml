@@ -91,3 +91,19 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: aio v${{ steps.version.outputs.version }}
           body: ${{ github.event.pull_request.body }}
+  publish:
+    needs: build
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Nushell
+        uses: hustcer/setup-nu@v3
+        with:
+          version: 0.83.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish on crates.io
+        run: nu .github/workflows/publish-crates-io.nu
+        env:
+          CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
