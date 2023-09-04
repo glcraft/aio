@@ -1,5 +1,5 @@
 [package]
-name = "cargo_info"
+name = "aio-cargo-info"
 version = "0.1.0"
 edition = "2021"
 authors = ["Gabin Lefranc <gabin.lefranc@gmail.com>"]
