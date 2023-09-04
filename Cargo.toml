@@ -6,6 +6,10 @@ edition = "2021"
 authors = ["Gabin Lefranc <gabin.lefranc@gmail.com>"]
 readme = "README.md"
 license = "MIT"
+categories = ["command-line-utilities", "parsing"]
+repository = "https://github.com/glcraft/aio"
+homepage = "https://github.com/glcraft/aio"
+keywords = ["cli", "terminal", "ai", "openai", "markdown"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -28,7 +32,7 @@ thiserror = "1.0"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1.12"
 
-cargo_info = { path = "crates/cargo_info" }
+cargo_info = { path = "crates/cargo_info", version = "*" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 openssl = {version = "0.10", features = ["vendored"]}
