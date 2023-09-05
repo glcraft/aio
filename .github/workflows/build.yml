@@ -91,9 +91,51 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: aio v${{ steps.version.outputs.version }}
           body: ${{ github.event.pull_request.body }}
-  publish:
+  check-crates-io:
     needs: build
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    outputs:
+      out-to-date: ${{ steps.compare.outputs.out-to-date }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Nushell
+        uses: hustcer/setup-nu@v3
+        with:
+          version: 0.83.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get repository name
+        id: repository
+        run: echo ::set-output name=name::$(nu -c "cargo read-manifest | from json | get name")
+      - name: Get infos from local package
+        id: package
+        shell: nu {0}
+        run: |
+          let info = cargo read-manifest | from json
+          print $"::set-output name=name::($info.name)"
+          print $"::set-output name=version::($info.version)"
+      - name: Get version from crates.io
+        id: crates-io-version
+        env:
+          PACKAGE_NAME: ${{ steps.repository.outputs.name }}
+        shell: nu {0}
+        run: |
+          let version = cargo search $env.PACKAGE_NAME --limit 1 --color never | parse -r `(?P<name>[\w-]+) = "(?P<version>\d+(?:\.\d+){0,2})"` | where name == $env.PACKAGE_NAME | append {name:"" version:""} | get 0.version
+          print $"::set-output name=version::($version)"
+      - name: Compare versions
+        id: compare
+        shell: nu {0}
+        env:
+          CRATES_IO_VERSION: ${{ steps.crates-io-version.outputs.version }}
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          let res = $env.CRATES_IO_VERSION == "" or $env.CRATES_IO_VERSION != $env.PACKAGE_VERSION
+          print $"::set-output name=out-to-date::($res)"
+
+  publish-crates-io:
+    needs: check-crates-io
+    if: needs.check-crates-io.outputs.out-to-date == 'true' && github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
