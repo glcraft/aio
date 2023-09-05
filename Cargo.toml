@@ -36,7 +36,7 @@ thiserror = "1.0"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1.12"
 
-aio-cargo-info = { path = "./crates/aio-cargo-info", version = "*" }
+aio-cargo-info = { path = "./crates/aio-cargo-info", version = "0.1" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 openssl = {version = "0.10", features = ["vendored"]}
