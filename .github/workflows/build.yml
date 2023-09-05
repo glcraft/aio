@@ -146,6 +146,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish on crates.io
-        run: nu .github/workflows/publish-crates-io.nu
         env:
           CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
+        run: nu .github/workflows/publish-crates-io.nu
