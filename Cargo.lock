@@ -21,10 +21,10 @@ dependencies = [
 name = "aio"
 version = "0.5.0"
 dependencies = [
+ "aio-cargo-info",
  "anyhow",
  "async-trait",
  "bytes",
- "cargo_info",
  "clap",
  "crossterm",
  "lazy_static",
@@ -40,6 +40,17 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-stream",
+]
+
+[[package]]
+name = "aio-cargo-info"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "syn 2.0.13",
+ "toml",
 ]
 
 [[package]]
@@ -193,17 +204,6 @@ name = "bytes"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89b2fd2a0dcf38d7971e2194b6b6eebab45ae01067456a7fd93d5547a61b70be"
-
-[[package]]
-name = "cargo_info"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "serde",
- "syn 2.0.13",
- "toml",
-]
 
 [[package]]
 name = "cc"

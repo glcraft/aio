@@ -268,7 +268,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
 
     let client = reqwest::Client::new();
     let stream = client.post("https://api.openai.com/v1/chat/completions")
-        .header("User-Agent", cargo_info::user_agent!())
+        .header("User-Agent", aio_cargo_info::user_agent!())
         .header("Authorization", format!("Bearer {}", openai_api_key))
         .json(&chat_request)
         .send()
