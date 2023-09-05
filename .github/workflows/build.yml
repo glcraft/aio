@@ -93,7 +93,7 @@ jobs:
           body: ${{ github.event.pull_request.body }}
   check-crates-io:
     needs: build
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' || github.event_name == 'workflow_dispatch'
     outputs:
       out-to-date: ${{ steps.compare.outputs.out-to-date }}
     runs-on: ubuntu-latest
@@ -135,7 +135,7 @@ jobs:
 
   publish-crates-io:
     needs: check-crates-io
-    if: needs.check-crates-io.outputs.out-to-date == 'true' && github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: needs.check-crates-io.outputs.out-to-date == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
