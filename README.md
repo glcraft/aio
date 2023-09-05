@@ -12,6 +12,7 @@ Welcome to the README for the `aio` command line tool – your gateway to seamle
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Installation](#installation)
+  - [NEW : Install from crates.io](#new--install-from-cratesio)
     - [Install from Github releases](#install-from-github-releases)
     - [Install from source](#install-from-source)
   - [Usage](#usage)
@@ -28,7 +29,15 @@ The `aio` command line tool is designed to simplify your interactions with AI en
 
 ## Installation
 
-`aio` is currently not available in any package manager (nor crates.io).
+## NEW : Install from crates.io
+
+You can now install aio from crates.io using the following command:
+
+```
+cargo install aio-cli
+```
+
+The program will be installed to your `~/.cargo/bin` directory.
 
 ### Install from Github releases
 
