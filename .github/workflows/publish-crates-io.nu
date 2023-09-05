@@ -1,6 +1,6 @@
 # Inspired from nushell deployment https://github.com/nushell/nu_scripts/blob/main/make_release/nu_release.nu
 
-subcrates = [
+let subcrates = [
     "aio-cargo-info"
 ]
 
