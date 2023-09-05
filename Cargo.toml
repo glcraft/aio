@@ -1,5 +1,5 @@
 [package]
-name = "aio"
+name = "aio-cli"
 description = "Streamlined AI Terminal Interactions"
 version = "0.5.0"
 edition = "2021"
@@ -10,6 +10,10 @@ categories = ["command-line-utilities", "parsing"]
 repository = "https://github.com/glcraft/aio"
 homepage = "https://github.com/glcraft/aio"
 keywords = ["cli", "terminal", "ai", "openai", "markdown"]
+
+[[bin]]
+name = "aio"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

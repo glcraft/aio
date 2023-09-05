@@ -18,7 +18,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "aio"
+name = "aio-cargo-info"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "syn 2.0.13",
+ "toml",
+]
+
+[[package]]
+name = "aio-cli"
 version = "0.5.0"
 dependencies = [
  "aio-cargo-info",
@@ -40,17 +51,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-stream",
-]
-
-[[package]]
-name = "aio-cargo-info"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "serde",
- "syn 2.0.13",
- "toml",
 ]
 
 [[package]]
