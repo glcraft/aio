@@ -50,5 +50,25 @@ pub struct Args {
     #[arg(long, short, default_value_t = Default::default())]
     pub formatter: FormatterChoice,
     /// User text prompt
+    pub input: Option<String>,
+}
+
+pub struct ProcessedArgs {
+    pub config_path: String,
+    pub creds_path: String,
+    pub engine: String,
+    pub formatter: FormatterChoice,
     pub input: String,
+}
+
+impl From<Args> for ProcessedArgs {
+    fn from(args: Args) -> Self {
+        Self {
+            config_path: args.config_path,
+            creds_path: args.creds_path,
+            engine: args.engine,
+            formatter: args.formatter,
+            input: args.input.unwrap_or_default(),
+        }
+    }
 }
