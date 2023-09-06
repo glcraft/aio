@@ -41,7 +41,11 @@ pub trait DeserializeExt: serde::de::DeserializeOwned {
     where 
         T: AsRef<Path>
     {
-        let file = std::fs::File::open(filepath.as_ref())?;
+        let filepath = filepath.as_ref().with_extension("yml");
+        let file = std::fs::File::open(&filepath).or_else(|_| {
+            let filepath = filepath.with_extension("yaml");
+            std::fs::File::open(filepath)
+        })?;
         serde_yaml::from_reader(file).map_err(Error::from)
     }
     fn from_json_memory<T>(memory: T) -> Result<Self, Error>
