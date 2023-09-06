@@ -33,6 +33,18 @@ fn resolve_path(path: &str) -> Cow<str> {
     }
 }
 
+fn get_config<P: AsRef<std::path::Path>>(path: P) -> Result<config::Config, String> {
+    let path = path.as_ref();
+    if path.exists() {
+        return config::Config::from_yaml_file(path).map_err(|e| e.to_string())
+    }
+    use std::io::Write;
+    let default_config = config::Config::default();
+    let yaml = serde_yaml::to_string(&default_config).map_err(|e| e.to_string())?;
+    std::fs::File::create(path).unwrap().write_all(yaml.as_bytes()).map_err(|e| e.to_string())?;
+    Ok(default_config)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), String> {
     let args = {
@@ -45,10 +57,7 @@ async fn main() -> Result<(), String> {
         }
         args::ProcessedArgs::from(args)
     };
-    let config = raise_str!(
-        config::Config::from_yaml_file(resolve_path(&args.config_path).as_ref()),
-        "Failed to parse config file: {}"
-    );
+    let config = get_config(resolve_path(&args.config_path).as_ref())?;
     let creds = raise_str!(
         credentials::Credentials::from_yaml_file(resolve_path(&args.creds_path).as_ref()),
         "Failed to parse credentials file: {}"
