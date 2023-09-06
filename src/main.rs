@@ -8,7 +8,6 @@ use std::borrow::Cow;
 
 use clap::Parser;
 use serde_io::DeserializeExt;
-use smartstring::alias::String;
 use tokio_stream::StreamExt;
 use arguments as args;
 use formatters::Formatter;
@@ -36,7 +35,16 @@ fn resolve_path(path: &str) -> Cow<str> {
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let args = args::Args::parse();
+    let args = {
+        let mut args = args::Args::parse();
+        if let None = args.input {
+            use std::io::Read;
+            let mut str_input = std::string::String::new();
+            std::io::stdin().lock().read_to_string(&mut str_input).map_err(|e| format!("Failed to read input from stdin: {}", e))?;
+            args.input = Some(str_input);
+        }
+        args::ProcessedArgs::from(args)
+    };
     let config = raise_str!(
         config::Config::from_yaml_file(resolve_path(&args.config_path).as_ref()),
         "Failed to parse config file: {}"
