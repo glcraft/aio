@@ -35,12 +35,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Rust
+        id: rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           target: ${{ matrix.arch }}-${{ matrix.system }}
           profile: minimal
           override: true
+      - uses: actions/cache@v3
+        with:
+          path: target
+          key: aio-${{ matrix.arch }}-${{ matrix.system }}-rust_${{ steps.rust.outputs.rustc_hash }}-${{ hashFiles('Cargo.toml') }}
       - name: Setup ssl for linux via apt
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt install libssl-dev pkg-config
