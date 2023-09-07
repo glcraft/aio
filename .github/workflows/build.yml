@@ -45,7 +45,10 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: target
-          key: aio-${{ matrix.arch }}-${{ matrix.system }}-rust_${{ steps.rust.outputs.rustc_hash }}-${{ hashFiles('Cargo.toml') }}
+          key: aio-${{ matrix.arch }}-${{ matrix.system }}-rust_${{ steps.rust.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            aio-${{ matrix.arch }}-${{ matrix.system }}-rust_${{ steps.rust.outputs.rustc_hash }}
+            aio-${{ matrix.arch }}-${{ matrix.system }}
       - name: Setup ssl for linux via apt
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt install libssl-dev pkg-config
