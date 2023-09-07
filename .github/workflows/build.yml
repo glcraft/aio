@@ -31,6 +31,7 @@ jobs:
           - system: unknown-linux-musl
             os: ubuntu-latest
             ext:
+            toolchain: nightly
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -38,7 +39,7 @@ jobs:
         id: rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: ${{ matrix.toolchain || 'stable' }}
           target: ${{ matrix.arch }}-${{ matrix.system }}
           profile: minimal
           override: true
@@ -60,7 +61,7 @@ jobs:
         env:
           CC_x86_64-unknown-linux-musl: x86_64-linux-musl-gcc
         with:
-          toolchain: stable
+          toolchain: ${{ matrix.toolchain || 'stable' }}
           command: build
           args: --release --target "${{ matrix.arch }}-${{ matrix.system }}"
           use-cross: false
