@@ -38,7 +38,7 @@ jobs:
         id: rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           target: ${{ matrix.arch }}-${{ matrix.system }}
           profile: minimal
           override: true
