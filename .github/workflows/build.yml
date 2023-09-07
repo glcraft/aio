@@ -60,7 +60,7 @@ jobs:
         env:
           CC_x86_64-unknown-linux-musl: x86_64-linux-musl-gcc
         with:
-          toolchain: nightly
+          toolchain: stable
           command: build
           args: --release --target "${{ matrix.arch }}-${{ matrix.system }}"
           use-cross: false
