@@ -43,7 +43,7 @@ jobs:
           target: ${{ matrix.arch }}-${{ matrix.system }}
           profile: minimal
           override: true
-      - uses: Swatinem/rust-cache@v2 #test
+      - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.arch }}-${{ matrix.system }}
       - name: Setup ssl for linux via apt
