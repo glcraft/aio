@@ -36,6 +36,7 @@ impl Formatter for Executor {
                         self.codes.last_mut().unwrap().code.push(c);
                     }
                     self.current_token.clear();
+                    self.is_newline = true;
                 },
                 _ => {
                     if self.is_code {
@@ -54,7 +55,10 @@ impl Formatter for Executor {
 
 impl Executor {
     pub fn new() -> Self {
-        Self::default()
+        Self  {
+            is_newline: true,
+            .. Default::default()
+        }
     }
     fn switch_code_block(&mut self) {
         self.is_code = !self.is_code;
