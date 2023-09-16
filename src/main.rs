@@ -68,19 +68,25 @@ async fn main() -> Result<(), String> {
         args::FormatterChoice::Markdown => Box::new(formatters::new_markdown_formatter()),
         args::FormatterChoice::Raw => Box::new(formatters::new_raw_formatter()),
     };
+    let mut runner = execution::Executor::new();
 
-    let engine = args.engine
+    let (engine, prompt) = args.engine
         .find(':')
-        .map(|i| &args.engine[..i])
-        .unwrap_or(args.engine.as_str());
+        .map(|i| (&args.engine[..i], Some(&args.engine[i+1..])))
+        .unwrap_or((args.engine.as_str(), None));
+
     let mut stream = match engine {
         "openai" => generators::openai::run(creds.openai, config, args).await,
+        "debug" => generators::debug::run(config, args).await,
         _ => panic!("Unknown engine: {}", engine),
     }.map_err(|e| format!("Failed to request OpenAI API: {}", e))?;
 
     loop {
         match stream.next().await {
-            Some(Ok(token)) => raise_str!(formatter.push(&token), "Failed to parse markdown: {}"),
+            Some(Ok(token)) => {
+                raise_str!(formatter.push(&token), "Failed to parse markdown: {}");
+                raise_str!(runner.push(&token), "Failed push text for execution: {}");
+            },
             Some(Err(e)) => Err(e.to_string())?,
             None => break,
         }
