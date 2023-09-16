@@ -53,6 +53,9 @@ impl Formatter for Executor {
 }
 
 impl Executor {
+    pub fn new() -> Self {
+        Self::default()
+    }
     fn switch_code_block(&mut self) {
         self.is_code = !self.is_code;
         if self.is_code {
