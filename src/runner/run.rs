@@ -5,10 +5,10 @@ use super::CodeBlock;
 
 #[derive(Error, Debug)]
 pub enum RunError {
-    #[error("search error: {0}")]
+    #[error("error while searching a program: {0}")]
     Search(#[from] SearchError),
-    #[error("program not found")]
-    ProgramNotFount,
+    #[error("program not found for `{0}`")]
+    ProgramNotFound(String),
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -20,8 +20,8 @@ pub enum SearchError {
     Io(std::io::Error),
     #[error("bad utf-8 encoding in path")]
     BadUTF8,
-    #[error("no corresponding program found")]
-    NoCorrespondingProgram,
+    #[error("no corresponding program found for `{0}`")]
+    NoCorrespondingProgram(String),
 }
 
 #[cfg(target_family = "unix")]
@@ -59,7 +59,7 @@ impl<T: 'static + Program> IntoBox for Result<Option<T>, SearchError> {
 fn get_program(language: &str) -> Result<Option<Box<dyn Program>>, SearchError> {
     match language {
         "bash" | "sh" | "shell" | "zsh" => ShellProgram::search().into_box(),
-        _ => Err(SearchError::NoCorrespondingProgram),
+        _ => Err(SearchError::NoCorrespondingProgram(language.to_string())),
     }
 }
 
@@ -95,7 +95,7 @@ impl ShellProgram {
 }
 pub fn run(code_block: &CodeBlock) -> Result<std::process::Output, RunError> {
     let program = get_program(code_block.language.as_str())?;
-    let program = program.expect("Program not found");
+    let Some(program) = program else { return Err(RunError::ProgramNotFound(code_block.language.clone())); };
     Ok(program.run(code_block)?)
 }
 
