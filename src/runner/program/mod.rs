@@ -1,5 +1,7 @@
 mod shell;
 use shell::*;
+mod rust;
+use rust::*;
 
 use std::borrow::Cow;
 use thiserror::Error;
@@ -64,6 +66,7 @@ fn get_program(language: &str) -> SearchStatus {
         "bash" | "sh" | "shell" | "zsh" => ShellProgram::search(&["zsh", "bash", "sh"]),
         "nu" => ShellProgram::search(&["nu"]),
         "pwsh" | "powershell" => ShellProgram::search(&["pwsh", "powershell"]),
+        "rust" | "rs" => RustProgram::search(),
         _ => SearchStatus::Error(SearchError::NoCorrespondingProgram(language.to_string())),
     }
 }
