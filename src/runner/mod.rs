@@ -53,7 +53,9 @@ impl Formatter for Runner {
         Ok(())
     }
     fn end_of_document(&mut self) -> Result<()> {
-        run::run(&self.codes[0])?;
+        for code_block in self.codes.iter() {
+            run::run(code_block)?;
+        }
         Ok(())
     }
 }
@@ -75,4 +77,5 @@ impl Runner {
             self.codes.last_mut().unwrap().code.pop();
         }
     }
+
 }
