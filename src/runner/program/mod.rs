@@ -62,6 +62,7 @@ fn search_program(program: &str) -> Result<Option<String>, SearchError> {
 fn get_program(language: &str) -> SearchStatus {
     match language {
         "bash" | "sh" | "shell" | "zsh" => ShellProgram::search(&["zsh", "bash", "sh"]),
+        "nu" => ShellProgram::search(&["nu"]),
         _ => SearchStatus::Error(SearchError::NoCorrespondingProgram(language.to_string())),
     }
 }
