@@ -1,4 +1,4 @@
-mod run;
+mod program;
 use anyhow::Result;
 use super::Formatter;
 
@@ -54,7 +54,7 @@ impl Formatter for Runner {
     }
     fn end_of_document(&mut self) -> Result<()> {
         for code_block in self.codes.iter() {
-            run::run(code_block)?;
+            program::run(code_block)?;
         }
         Ok(())
     }
