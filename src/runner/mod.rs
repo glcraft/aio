@@ -1,8 +1,9 @@
+mod run;
 use anyhow::Result;
 use super::Formatter;
 
 #[derive(Default, Debug)]
-struct CodeBlock {
+pub struct CodeBlock {
     code: String,
     language: String,
 }
@@ -13,14 +14,14 @@ impl CodeBlock {
     }
 }
 #[derive(Default, Debug)]
-pub struct Executor{
+pub struct Runner{
     is_code: bool,
     is_newline: bool,
     current_token: String,
     codes: Vec<CodeBlock>
 }
 
-impl Formatter for Executor {
+impl Formatter for Runner {
     fn push(&mut self, text: &str) -> Result<()> {
         for c in text.chars() {
             match c {
@@ -53,7 +54,7 @@ impl Formatter for Executor {
     }
 }
 
-impl Executor {
+impl Runner {
     pub fn new() -> Self {
         Self  {
             is_newline: true,
