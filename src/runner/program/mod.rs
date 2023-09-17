@@ -36,12 +36,6 @@ enum SearchStatus {
     Error(SearchError)
 }
 
-impl From<SearchError> for SearchStatus {
-    fn from(e: SearchError) -> Self {
-        SearchStatus::Error(e)
-    }
-}
-
 #[cfg(target_family = "unix")]
 fn search_program(program: &str) -> Result<Option<String>, SearchError> {
     let path = std::env::var("PATH").map_err(|e| SearchError::EnvVarNotFound("PATH".into(), e))?;
@@ -64,15 +58,6 @@ fn search_program(program: &str) -> Result<Option<String>, SearchError> {
         },
     }
 }
-// trait IntoBox {
-//     fn into_box(self) -> Result<Option<Box<dyn Program>>, SearchError>;
-// }
-// impl<T: 'static + Program> IntoBox for Result<Option<T>, SearchError> {
-//     fn into_box(self) -> Result<Option<Box<dyn Program>>, SearchError> {
-//         self.map(|opt_program| opt_program.map(|program| -> Box<dyn Program> { Box::new(program) }))
-//     }
-    
-// }
 
 fn get_program(language: &str) -> SearchStatus {
     match language {
