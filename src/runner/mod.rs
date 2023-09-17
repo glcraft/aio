@@ -52,6 +52,10 @@ impl Formatter for Runner {
         }
         Ok(())
     }
+    fn end_of_document(&mut self) -> Result<()> {
+        run::run(&self.codes[0])?;
+        Ok(())
+    }
 }
 
 impl Runner {

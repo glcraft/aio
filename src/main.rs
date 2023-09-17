@@ -68,7 +68,7 @@ async fn main() -> Result<(), String> {
         args::FormatterChoice::Markdown => Box::new(formatters::new_markdown_formatter()),
         args::FormatterChoice::Raw => Box::new(formatters::new_raw_formatter()),
     };
-    let mut runner = execution::Executor::new();
+    let mut runner = runner::Runner::new();
 
     let (engine, prompt) = args.engine
         .find(':')
@@ -92,5 +92,8 @@ async fn main() -> Result<(), String> {
         }
     }
     raise_str!(formatter.end_of_document(), "Failed to end markdown: {}");
+    raise_str!(runner.end_of_document(), "Failed to run code: {}");
+
+    println!("{:#?}", runner);
     Ok(())
 }
