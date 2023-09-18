@@ -85,7 +85,9 @@ fn search_program(program: &str) -> Result<Option<String>, SearchError> {
 
 fn get_program(language: &str) -> SearchStatus {
     match language {
-        "bash" | "sh" | "shell" | "zsh" => ShellProgram::search(&["zsh", "bash", "sh"]),
+        "sh" | "shell" => ShellProgram::search(&["zsh", "bash", "sh"]),
+        "bash"  => ShellProgram::search(&["zsh", "bash"]),
+        "zsh" => ShellProgram::search(&["zsh"]),
         "nu" => ShellProgram::search(&["nu"]),
         "pwsh" | "powershell" => ShellProgram::search(&["pwsh", "powershell"]),
         "rust" | "rs" => RustProgram::search(),
