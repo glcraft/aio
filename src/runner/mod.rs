@@ -1,7 +1,6 @@
 mod program;
 use crate::args;
 use anyhow::Result;
-use crossterm::ExecutableCommand;
 use super::Formatter;
 
 #[derive(Default, Debug)]
@@ -99,7 +98,14 @@ impl Runner {
             return Ok(());
         }
         loop {
-            print!("Execute code ?\n1-{}: index of the code block\nq: quit\n> ", self.codes.len());
+            println!("Execute code ?");
+            if self.codes.len() == 1 {
+                println!("1: index of the code block");
+            } else {
+                println!("1-{}: index of the code block", self.codes.len());
+            }
+            println!("q: quit");
+            print!("> ");
             std::io::stdout().flush()?;
             let mut stdin_buf = String::new();
             std::io::stdin().read_line(&mut stdin_buf)?;
