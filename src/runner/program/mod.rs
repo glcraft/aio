@@ -24,8 +24,6 @@ pub enum RunError {
 pub enum SearchError {
     #[error("env var {0} not found: {1}")]
     EnvVarNotFound(Cow<'static, str>, std::env::VarError),
-    #[error("io error: {0}")]
-    Io(std::io::Error),
     #[error("bad utf-8 encoding in path")]
     BadUTF8,
     #[error("no corresponding program found for `{0}`")]
