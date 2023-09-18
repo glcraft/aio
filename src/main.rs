@@ -70,14 +70,14 @@ async fn main() -> Result<(), String> {
     };
     let mut runner = runner::Runner::new(args.run);
 
-    let (engine, prompt) = args.engine
+    let (engine, _prompt) = args.engine
         .find(':')
         .map(|i| (&args.engine[..i], Some(&args.engine[i+1..])))
         .unwrap_or((args.engine.as_str(), None));
 
     let mut stream = match engine {
         "openai" => generators::openai::run(creds.openai, config, args).await,
-        "debug" => generators::debug::run(config, args).await,
+        "from-file" => generators::debug::run(config, args).await,
         _ => panic!("Unknown engine: {}", engine),
     }.map_err(|e| format!("Failed to request OpenAI API: {}", e))?;
 
@@ -85,7 +85,7 @@ async fn main() -> Result<(), String> {
         match stream.next().await {
             Some(Ok(token)) => {
                 raise_str!(formatter.push(&token), "Failed to parse markdown: {}");
-                raise_str!(runner.push(&token), "Failed push text for execution: {}");
+                raise_str!(runner.push(&token), "Failed push text in the runner system: {}");
             },
             Some(Err(e)) => Err(e.to_string())?,
             None => break,
