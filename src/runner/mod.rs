@@ -1,5 +1,6 @@
 mod program;
 use anyhow::Result;
+use crossterm::ExecutableCommand;
 use super::Formatter;
 
 #[derive(Default, Debug)]
@@ -15,6 +16,7 @@ impl CodeBlock {
 }
 #[derive(Default, Debug)]
 pub struct Runner{
+    interactive: bool,
     is_code: bool,
     is_newline: bool,
     current_token: String,
@@ -53,9 +55,20 @@ impl Formatter for Runner {
         Ok(())
     }
     fn end_of_document(&mut self) -> Result<()> {
-        for code_block in self.codes.iter() {
-            program::run(code_block)?;
+        use std::io::IsTerminal;
+        if !std::io::stdout().is_terminal() {
+            // No code execution allowed if not in a terminal
+            return Ok(())
         }
+        match self.interactive {
+            false => {
+                for code_block in self.codes.iter() {
+                    program::run(code_block)?;
+                }
+            },
+            true => self.interactive_interface()?,
+        }
+        
         Ok(())
     }
 }
@@ -64,6 +77,7 @@ impl Runner {
     pub fn new() -> Self {
         Self  {
             is_newline: true,
+            interactive: true,
             .. Default::default()
         }
     }
@@ -77,5 +91,35 @@ impl Runner {
             self.codes.last_mut().unwrap().code.pop();
         }
     }
-
+    fn interactive_interface(&mut self) -> Result<()> {
+        use std::io::Write;
+        if self.codes.is_empty() {
+            return Ok(());
+        }
+        loop {
+            print!("Execute code ?\n1-{}: index of the code block\nq: quit\n> ", self.codes.len());
+            std::io::stdout().flush()?;
+            let mut stdin_buf = String::new();
+            std::io::stdin().read_line(&mut stdin_buf)?;
+            let stdin_buf = stdin_buf.trim();
+            if stdin_buf == "q" {
+                return Ok(());
+            }
+            let index = match stdin_buf.parse::<isize>() {
+                Ok(i) => i,
+                Err(_) => {
+                    println!("Not a number");
+                    continue;
+                }
+            };
+            if !(1..=self.codes.len() as isize).contains(&index) {
+                println!("Index out of range");
+                continue;
+            }
+            print!("\n");
+            program::run(&self.codes[index as usize-1])?;
+            print!("\n");
+        }
+        Ok(())
+    }
 }
