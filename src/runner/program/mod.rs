@@ -2,6 +2,8 @@ mod shell;
 use shell::*;
 mod rust;
 use rust::*;
+mod python;
+use python::*;
 
 use std::borrow::Cow;
 use thiserror::Error;
@@ -83,6 +85,7 @@ fn get_program(language: &str) -> SearchStatus {
         "nu" => ShellProgram::search(&["nu"]),
         "pwsh" | "powershell" => ShellProgram::search(&["pwsh", "powershell"]),
         "rust" | "rs" => RustProgram::search(),
+        "py" | "python" => PythonProgram::search(),
         _ => SearchStatus::Error(SearchError::NoCorrespondingProgram(language.to_string())),
     }
 }
