@@ -53,7 +53,7 @@ fn search_program(program: &str) -> Result<Option<String>, SearchError> {
 
     let path = std::env::var("PATH").map_err(|e| SearchError::EnvVarNotFound("PATH".into(), e))?;
     let found = path.split(SEPARATOR).find_map(|p| {
-        let Ok(mut directory) = std::fs::read_dir(p) else { return None; };
+        let mut directory = std::fs::read_dir(p).ok()?;
         let found_program = directory.find(|res_item| {
             let Ok(item) = res_item else { return false };
             let Ok(file_type) = item.file_type() else { return false };
@@ -77,14 +77,10 @@ fn search_program(program: &str) -> Result<Option<String>, SearchError> {
             .and_then(Result::ok)
             .map(|v| v.path())
     });
-    match found {
-        None => Ok(None),
-        Some(found) => {
-            let found = found.to_str().ok_or(SearchError::BadUTF8)?.to_string();
-            cache::Cache::set_program(program.into(), found.clone())?;
-            Ok(Some(found))
-        },
-    }
+    let Some(found) = found else { return Ok(None); };
+    let found = found.to_str().ok_or(SearchError::BadUTF8)?.to_string();
+    cache::Cache::set_program(program.into(), found.clone())?;
+    Ok(Some(found))
 }
 
 fn get_program(language: &str) -> SearchStatus {
