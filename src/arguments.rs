@@ -57,20 +57,15 @@ impl Display for FormatterChoice {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum RunChoice {
     /// Doesn't run anything
+    #[default]
     No,
     /// Ask to run code
     Ask,
     /// Run code without asking
     Force
-}
-
-impl Default for RunChoice {
-    fn default() -> Self {
-        RunChoice::No
-    }
 }
 
 impl Display for RunChoice {
