@@ -30,7 +30,11 @@ impl Cache {
     }
     pub fn get_program(program: &str) -> Result<Option<String>, CacheError> {
         let cache = Self::get()?;
-        Ok(cache.programs.get(program).cloned())
+        let Some(path) = cache.programs.get(program) else { return Ok(None); };
+        if !std::path::Path::new(path).exists() {
+            return Ok(None);
+        }
+        Ok(Some(path.clone()))
     }
     pub fn set_program(program: String, path: String) -> Result<(), CacheError> {
         let file_path = Self::cache_path();
