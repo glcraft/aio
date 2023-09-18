@@ -1,3 +1,5 @@
+mod cache;
+
 mod shell;
 use shell::*;
 mod rust;
@@ -30,6 +32,8 @@ pub enum SearchError {
     BadUTF8,
     #[error("no corresponding program found for `{0}`")]
     NoCorrespondingProgram(String),
+    #[error("cache error: {0}")]
+    Cache(#[from] cache::CacheError)
 }
 
 enum SearchStatus {
@@ -39,6 +43,9 @@ enum SearchStatus {
 }
 
 fn search_program(program: &str) -> Result<Option<String>, SearchError> {
+    if let Some(found) = cache::Cache::get_program(program)? {
+        return Ok(Some(found));
+    }
     #[cfg(target_family = "unix")]
     const SEPARATOR: char = ':';
     #[cfg(target_family = "windows")]
@@ -73,8 +80,9 @@ fn search_program(program: &str) -> Result<Option<String>, SearchError> {
     match found {
         None => Ok(None),
         Some(found) => {
-            let found = found.to_str().ok_or(SearchError::BadUTF8)?;
-            Ok(Some(found.to_string()))
+            let found = found.to_str().ok_or(SearchError::BadUTF8)?.to_string();
+            cache::Cache::set_program(program.into(), found.clone())?;
+            Ok(Some(found))
         },
     }
 }
