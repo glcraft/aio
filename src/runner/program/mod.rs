@@ -36,15 +36,33 @@ enum SearchStatus {
     Error(SearchError)
 }
 
-#[cfg(target_family = "unix")]
 fn search_program(program: &str) -> Result<Option<String>, SearchError> {
+    #[cfg(target_family = "unix")]
+    const SEPARATOR: char = ':';
+    #[cfg(target_family = "windows")]
+    const SEPARATOR: char = ';';
+
     let path = std::env::var("PATH").map_err(|e| SearchError::EnvVarNotFound("PATH".into(), e))?;
-    let found = path.split(':').find_map(|p| {
+    let found = path.split(SEPARATOR).find_map(|p| {
         let Ok(mut directory) = std::fs::read_dir(p) else { return None; };
         let found_program = directory.find(|res_item| {
             let Ok(item) = res_item else { return false };
             let Ok(file_type) = item.file_type() else { return false };
-            (file_type.is_file() || file_type.is_symlink()) && item.file_name() == program
+            if !(file_type.is_file() || file_type.is_symlink()) {
+                return false;
+            }
+            #[cfg(target_family = "unix")]
+            return item.file_name() == program;
+            #[cfg(target_family = "windows")]
+            {
+                use std::ffi::{OsString, OsStr};
+                let os_program = OsString::from(program.to_lowercase());
+                let os_extension = OsString::from("exe");
+                let path = item.path();
+                let Some(filestem) = path.file_stem().map(OsStr::to_ascii_lowercase) else { return false };
+                let Some(extension) = path.file_stem().map(OsStr::to_ascii_lowercase) else { return false };
+                return filestem == os_program && extension == os_extension;
+            }
         });
         found_program
             .and_then(Result::ok)
