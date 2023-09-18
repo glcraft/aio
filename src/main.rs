@@ -93,7 +93,5 @@ async fn main() -> Result<(), String> {
     }
     raise_str!(formatter.end_of_document(), "Failed to end markdown: {}");
     raise_str!(runner.end_of_document(), "Failed to run code: {}");
-
-    println!("{:#?}", runner);
     Ok(())
 }
