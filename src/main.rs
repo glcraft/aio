@@ -22,13 +22,21 @@ macro_rules! raise_str {
     };
 }
 
+fn home_dir() -> &'static str {
+    #[cfg(unix)]
+    lazy_static::lazy_static! {
+        static ref HOME: String = std::env::var("HOME").expect("Failed to resolve home path");
+    }
+    #[cfg(windows)]
+    lazy_static::lazy_static! {
+        static ref HOME: String = std::env::var("USERPROFILE").expect("Failed to resolve user profile path");
+    }
+    &*HOME
+}
+
 fn resolve_path(path: &str) -> Cow<str> {
     if path.starts_with("~/") {
-        #[cfg(unix)]
-        let home = std::env::var("HOME").expect("Failed to resolve home path");
-        #[cfg(windows)]
-        let home = std::env::var("USERPROFILE").expect("Failed to resolve user profile path");
-        Cow::Owned(format!("{}{}{}", home, std::path::MAIN_SEPARATOR, &path[2..]))
+        Cow::Owned(format!("{}{}{}", home_dir(), std::path::MAIN_SEPARATOR, &path[2..]))
     } else {
         Cow::Borrowed(path)
     }
