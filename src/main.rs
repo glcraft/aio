@@ -68,7 +68,7 @@ async fn main() -> Result<(), String> {
         args::FormatterChoice::Markdown => Box::new(formatters::new_markdown_formatter()),
         args::FormatterChoice::Raw => Box::new(formatters::new_raw_formatter()),
     };
-    let mut runner = runner::Runner::new();
+    let mut runner = runner::Runner::new(args.run);
 
     let (engine, prompt) = args.engine
         .find(':')

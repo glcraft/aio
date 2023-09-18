@@ -1,4 +1,5 @@
 mod program;
+use crate::args;
 use anyhow::Result;
 use crossterm::ExecutableCommand;
 use super::Formatter;
@@ -16,7 +17,7 @@ impl CodeBlock {
 }
 #[derive(Default, Debug)]
 pub struct Runner{
-    interactive: bool,
+    interactive_mode: args::RunChoice,
     is_code: bool,
     is_newline: bool,
     current_token: String,
@@ -60,13 +61,14 @@ impl Formatter for Runner {
             // No code execution allowed if not in a terminal
             return Ok(())
         }
-        match self.interactive {
-            false => {
+        match self.interactive_mode {
+            args::RunChoice::No => return Ok(()),
+            args::RunChoice::Ask => self.interactive_interface()?,
+            args::RunChoice::Force => {
                 for code_block in self.codes.iter() {
                     program::run(code_block)?;
                 }
             },
-            true => self.interactive_interface()?,
         }
         
         Ok(())
@@ -74,10 +76,10 @@ impl Formatter for Runner {
 }
 
 impl Runner {
-    pub fn new() -> Self {
+    pub fn new(run_choice: args::RunChoice) -> Self {
         Self  {
             is_newline: true,
-            interactive: true,
+            interactive_mode: run_choice,
             .. Default::default()
         }
     }

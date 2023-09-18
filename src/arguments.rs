@@ -87,6 +87,7 @@ pub struct ProcessedArgs {
     pub creds_path: String,
     pub engine: String,
     pub formatter: FormatterChoice,
+    pub run: RunChoice,
     pub input: String,
 }
 
@@ -97,6 +98,7 @@ impl From<Args> for ProcessedArgs {
             creds_path: args.creds_path,
             engine: args.engine,
             formatter: args.formatter,
+            run: args.run,
             input: args.input.unwrap_or_default(),
         }
     }
