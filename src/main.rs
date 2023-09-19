@@ -23,15 +23,20 @@ macro_rules! raise_str {
 }
 
 fn home_dir() -> &'static str {
+    static HOME: once_cell::sync::OnceCell<String> = once_cell::sync::OnceCell::new();
+
     #[cfg(unix)]
-    lazy_static::lazy_static! {
-        static ref HOME: String = std::env::var("HOME").expect("Failed to resolve home path");
-    }
+    HOME.set(
+        std::env::var("HOME")
+            .expect("Failed to resolve home path")
+    ).expect("Failed to set home path");
+    
     #[cfg(windows)]
-    lazy_static::lazy_static! {
-        static ref HOME: String = std::env::var("USERPROFILE").expect("Failed to resolve user profile path");
-    }
-    &*HOME
+    HOME.set(
+        std::env::var("USERPROFILE")
+            .expect("Failed to resolve user profile path")
+    ).expect("Failed to set user profile path");
+    &HOME.get().unwrap()
 }
 
 fn resolve_path(path: &str) -> Cow<str> {

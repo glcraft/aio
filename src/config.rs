@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -24,9 +25,7 @@ impl Default for Config {
 }
 
 pub fn format_content<'a>(content: &'a str, args: &args::ProcessedArgs) -> Cow<'a, str> {
-    lazy_static::lazy_static!{
-        static ref RE: Regex = Regex::new(r"(?P<prefix>\$\$?)(?P<name>\w+)").expect("Failed to compile regex");
-    }
+    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?P<prefix>\$\$?)(?P<name>\w+)").expect("Failed to compile regex"));
     RE.replace_all(content, |caps: &regex::Captures| {
         let prefix = &caps["prefix"];
         if prefix == "$$" {
