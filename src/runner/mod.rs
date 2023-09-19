@@ -128,6 +128,5 @@ impl Runner {
             program::run(&self.codes[index as usize-1])?;
             print!("\n");
         }
-        Ok(())
     }
 }
