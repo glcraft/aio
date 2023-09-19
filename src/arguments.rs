@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use clap::{Parser, ValueEnum};
 
 /// Program to communicate with large language models and AI API 
@@ -21,43 +19,28 @@ pub struct Args {
     /// Formatter
     /// 
     /// Possible values: markdown, raw
-    #[arg(long, short, default_value_t = Default::default())]
+    #[arg(long, short, value_enum, default_value_t = Default::default())]
     pub formatter: FormatterChoice,
     /// Run code block if the language is supported
-    #[arg(long, short, default_value_t = Default::default())]
+    #[arg(long, short, value_enum, default_value_t = Default::default())]
     pub run: RunChoice,
     /// Force to run code 
     /// User text prompt
     pub input: Option<String>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[value(rename_all = "lowercase")]
 pub enum FormatterChoice {
+    /// Markdown display
+    #[default]
     Markdown,
+    /// Raw display
     Raw,
 }
 
-impl Default for FormatterChoice {
-    fn default() -> Self {
-        use std::io::IsTerminal;
-        if std::io::stdout().is_terminal() {
-            FormatterChoice::Markdown
-        } else {
-            FormatterChoice::Raw
-        }
-    }
-}
-
-impl Display for FormatterChoice {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FormatterChoice::Markdown => write!(f, "markdown"),
-            FormatterChoice::Raw => write!(f, "raw"),
-        }
-    }
-}
-
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[value(rename_all = "lowercase")]
 pub enum RunChoice {
     /// Doesn't run anything
     #[default]
@@ -68,15 +51,6 @@ pub enum RunChoice {
     Force
 }
 
-impl Display for RunChoice {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RunChoice::No => write!(f, "no"),
-            RunChoice::Ask => write!(f, "ask"),
-            RunChoice::Force => write!(f, "force"),
-        }
-    }
-}
 pub struct ProcessedArgs {
     pub config_path: String,
     pub creds_path: String,
