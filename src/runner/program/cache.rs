@@ -1,3 +1,6 @@
+use std::ops::{Deref, DerefMut};
+
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use thiserror::Error;
 use serde::{Deserialize, Serialize};
 
@@ -16,36 +19,62 @@ pub enum CacheError {
     NoParent,
 }
 
+static CACHE: once_cell::sync::Lazy<Result<RwLock<Cache>, CacheError>> = once_cell::sync::Lazy::new(|| {
+    Cache::load().map(|cache| RwLock::new(cache))
+});
+
 impl Cache {
-    fn get() -> Result<Self, CacheError> {
-        let file_path = Self::cache_path();
+    fn load() -> Result<Self, CacheError> {
+        let file_path = Cache::cache_path();
         if !file_path.exists() {
             return Ok(Default::default());
         }
-        let cache_file = std::fs::File::open(file_path)?;
-        Ok(serde_yaml::from_reader(cache_file)?)
-    }
-    fn cache_path() -> std::path::PathBuf {
-        std::path::Path::new(crate::home_dir()).join(".cache").join("aio.yaml")
-    }
-    pub fn get_program(program: &str) -> Result<Option<String>, CacheError> {
-        let cache = Self::get()?;
-        let Some(path) = cache.programs.get(program) else { return Ok(None); };
-        if !std::path::Path::new(path).exists() {
-            return Ok(None);
+        let cache_file = match std::fs::File::open(file_path) {
+            Ok(file) => file,
+            Err(e) => return Err(e.into()),
+        };
+        match serde_yaml::from_reader(cache_file) {
+            Ok(cache) => return Ok(cache),
+            Err(e) => return Err(e.into()),
         }
-        Ok(Some(path.clone()))
     }
-    pub fn set_program(program: String, path: String) -> Result<(), CacheError> {
+    fn save(&self) -> Result<(), CacheError> {
         let file_path = Self::cache_path();
         let Some(parent) = file_path.parent() else { return Err(CacheError::NoParent); };
             if !parent.exists() {
                 std::fs::create_dir_all(parent)?;
             }
-        let mut cache = Self::get()?;
-        cache.programs.insert(program.to_string(), path.to_string());
         let mut cache_file = std::fs::File::create(file_path)?;
-        serde_yaml::to_writer(&mut cache_file, &cache)?;
+        serde_yaml::to_writer(&mut cache_file, self)?;
         Ok(())
     }
+    fn get() -> RwLockReadGuard<'static, Self> {
+        match *CACHE {
+            Ok(ref cache) => cache.read().expect("Error while accessing to the cache memory"),
+            Err(_) => panic!("Unable to access to the cache file"),
+        }
+    }
+    fn get_mut() -> RwLockWriteGuard<'static, Self> {
+        match *CACHE {
+            Ok(ref cache) => cache.write().expect("Error while accessing to the cache memory"),
+            Err(_) => panic!("Unable to access to the cache file"),
+        }
+    }
+    fn cache_path() -> std::path::PathBuf {
+        std::path::Path::new(crate::home_dir()).join(".cache").join("aio.yaml")
+    }
+}
+pub fn get_program(program: &str) -> Option<String> {
+    let cache = Cache::get();
+    let path = cache.programs.get(program)?;
+    if !std::path::Path::new(path).exists() {
+        return None;
+    }
+    Some(path.clone())
+}
+pub fn set_program(program: String, path: String) -> Result<(), CacheError> {
+    let mut cache = Cache::get_mut();
+    cache.programs.insert(program.to_string(), path.to_string());
+    cache.save()?;
+    Ok(())
 }

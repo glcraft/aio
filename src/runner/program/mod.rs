@@ -43,7 +43,7 @@ enum SearchStatus {
 }
 
 fn search_program(program: &str) -> Result<Option<String>, SearchError> {
-    if let Some(found) = cache::Cache::get_program(program)? {
+    if let Some(found) = cache::get_program(program) {
         return Ok(Some(found));
     }
     #[cfg(target_family = "unix")]
@@ -79,7 +79,7 @@ fn search_program(program: &str) -> Result<Option<String>, SearchError> {
     });
     let Some(found) = found else { return Ok(None); };
     let found = found.to_str().ok_or(SearchError::BadUTF8)?.to_string();
-    cache::Cache::set_program(program.into(), found.clone())?;
+    cache::set_program(program.into(), found.clone())?;
     Ok(Some(found))
 }
 
