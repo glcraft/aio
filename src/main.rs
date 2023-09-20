@@ -1,4 +1,5 @@
 pub mod arguments;
+mod runner;
 mod generators;
 mod formatters;
 mod config;
@@ -21,13 +22,24 @@ macro_rules! raise_str {
     };
 }
 
+fn home_dir() -> &'static str {
+    static HOME: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
+        #[cfg(unix)]
+        let path = std::env::var("HOME")
+            .expect("Failed to resolve home path");
+        
+        #[cfg(windows)]
+        let path = std::env::var("USERPROFILE")
+            .expect("Failed to resolve user profile path");
+        path
+    });
+
+    &*HOME
+}
+
 fn resolve_path(path: &str) -> Cow<str> {
     if path.starts_with("~/") {
-        #[cfg(unix)]
-        let home = std::env::var("HOME").expect("Failed to resolve home path");
-        #[cfg(windows)]
-        let home = std::env::var("USERPROFILE").expect("Failed to resolve user profile path");
-        Cow::Owned(format!("{}{}{}", home, std::path::MAIN_SEPARATOR, &path[2..]))
+        Cow::Owned(format!("{}{}{}", home_dir(), std::path::MAIN_SEPARATOR, &path[2..]))
     } else {
         Cow::Borrowed(path)
     }
@@ -67,23 +79,30 @@ async fn main() -> Result<(), String> {
         args::FormatterChoice::Markdown => Box::new(formatters::new_markdown_formatter()),
         args::FormatterChoice::Raw => Box::new(formatters::new_raw_formatter()),
     };
+    let mut runner = runner::Runner::new(args.run);
 
-    let engine = args.engine
+    let (engine, _prompt) = args.engine
         .find(':')
-        .map(|i| &args.engine[..i])
-        .unwrap_or(args.engine.as_str());
+        .map(|i| (&args.engine[..i], Some(&args.engine[i+1..])))
+        .unwrap_or((args.engine.as_str(), None));
+
     let mut stream = match engine {
         "openai" => generators::openai::run(creds.openai, config, args).await,
+        "from-file" => generators::debug::run(config, args).await,
         _ => panic!("Unknown engine: {}", engine),
     }.map_err(|e| format!("Failed to request OpenAI API: {}", e))?;
 
     loop {
         match stream.next().await {
-            Some(Ok(token)) => raise_str!(formatter.push(&token), "Failed to parse markdown: {}"),
+            Some(Ok(token)) => {
+                raise_str!(formatter.push(&token), "Failed to parse markdown: {}");
+                raise_str!(runner.push(&token), "Failed push text in the runner system: {}");
+            },
             Some(Err(e)) => Err(e.to_string())?,
             None => break,
         }
     }
     raise_str!(formatter.end_of_document(), "Failed to end markdown: {}");
+    raise_str!(runner.end_of_document(), "Failed to run code: {}");
     Ok(())
 }

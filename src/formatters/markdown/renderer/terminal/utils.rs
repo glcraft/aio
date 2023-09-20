@@ -1,5 +1,4 @@
-use lazy_static::lazy_static;
-
+use once_cell::sync::Lazy;
 use super::{token, queue};
 use std::io::Error;
 
@@ -77,9 +76,9 @@ pub fn repeat_char(c: char, n: usize) -> String {
 
 #[inline]
 pub fn draw_line() -> Result<(), Error> {
-    lazy_static! {
-        static ref LINE_STRING: String = repeat_char(CODE_BLOCK_LINE_CHAR[0], CODE_BLOCK_MARGIN.max(crossterm::terminal::size().unwrap_or_default().0 as usize));
-    }
+    static LINE_STRING: Lazy<String> = Lazy::new(|| {
+        repeat_char(CODE_BLOCK_LINE_CHAR[0], CODE_BLOCK_MARGIN.max(crossterm::terminal::size().unwrap_or_default().0 as usize))
+    });
     queue!(std::io::stdout(), 
         crossterm::style::Print(&*LINE_STRING)
     )

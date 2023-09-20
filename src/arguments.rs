@@ -1,32 +1,4 @@
-use std::fmt::Display;
-
 use clap::{Parser, ValueEnum};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-pub enum FormatterChoice {
-    Markdown,
-    Raw,
-}
-
-impl Default for FormatterChoice {
-    fn default() -> Self {
-        use std::io::IsTerminal;
-        if std::io::stdout().is_terminal() {
-            FormatterChoice::Markdown
-        } else {
-            FormatterChoice::Raw
-        }
-    }
-}
-
-impl Display for FormatterChoice {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FormatterChoice::Markdown => write!(f, "markdown"),
-            FormatterChoice::Raw => write!(f, "raw"),
-        }
-    }
-}
 
 /// Program to communicate with large language models and AI API 
 #[derive(Parser, Debug)]
@@ -47,10 +19,36 @@ pub struct Args {
     /// Formatter
     /// 
     /// Possible values: markdown, raw
-    #[arg(long, short, default_value_t = Default::default())]
+    #[arg(long, short, value_enum, default_value_t = Default::default())]
     pub formatter: FormatterChoice,
+    /// Run code block if the language is supported
+    #[arg(long, short, value_enum, default_value_t = Default::default())]
+    pub run: RunChoice,
+    /// Force to run code 
     /// User text prompt
     pub input: Option<String>,
+}
+
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[value(rename_all = "lowercase")]
+pub enum FormatterChoice {
+    /// Markdown display
+    #[default]
+    Markdown,
+    /// Raw display
+    Raw,
+}
+
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[value(rename_all = "lowercase")]
+pub enum RunChoice {
+    /// Doesn't run anything
+    #[default]
+    No,
+    /// Ask to run code
+    Ask,
+    /// Run code without asking
+    Force
 }
 
 pub struct ProcessedArgs {
@@ -58,6 +56,7 @@ pub struct ProcessedArgs {
     pub creds_path: String,
     pub engine: String,
     pub formatter: FormatterChoice,
+    pub run: RunChoice,
     pub input: String,
 }
 
@@ -68,6 +67,7 @@ impl From<Args> for ProcessedArgs {
             creds_path: args.creds_path,
             engine: args.engine,
             formatter: args.formatter,
+            run: args.run,
             input: args.input.unwrap_or_default(),
         }
     }
