@@ -1,4 +1,5 @@
 pub mod openai;
+pub mod debug;
 
 use tokio_stream::Stream;
 use thiserror::Error;
