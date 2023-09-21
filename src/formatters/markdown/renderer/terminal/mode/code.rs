@@ -60,7 +60,11 @@ impl Code {
             crossterm::cursor::MoveTo(Self::counter_space() as _, current_line_pos),
             crossterm::style::Print(utils::CODE_BLOCK_LINE_CHAR[2+sens as usize]),
             crossterm::cursor::MoveDown(1),
-        )
+        )?;
+        if crossterm::cursor::position()?.0 > 0 {
+            queue!(std::io::stdout(), crossterm::cursor::MoveDown(1))?;
+        }
+        Ok(())
     }
     fn draw_newline(&self) -> Result<(), Error> {
         let line = format!("{3}{0:0>1$}{3}{2}{3}", 
