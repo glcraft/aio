@@ -3,16 +3,17 @@
 Welcome to the README for the `aio` command line tool – your gateway to seamless communication with AI engines via the terminal. This tool streamlines interactions with AI APIs, including the OpenAI API, and conveniently formats the results using integrated markdown formatting. Whether you're seeking information, generating content, or experimenting with AI, `aio` has you covered.
 
 <p align="center">
-  <img src="./docs/output2.gif" style="border-radius: 10px;"/>
+  <img src="./docs/prez.gif" style="border-radius: 10px;"/>
 </p>
 
 ## Table of Contents
 
 - [aio - Streamlined AI Terminal Interactions](#aio---streamlined-ai-terminal-interactions)
   - [Table of Contents](#table-of-contents)
+  - [NEW : Run code from code blocks](#new--run-code-from-code-blocks)
   - [Introduction](#introduction)
   - [Installation](#installation)
-  - [NEW : Install from crates.io](#new--install-from-cratesio)
+  - [Install from crates.io](#install-from-cratesio)
     - [Install from Github releases](#install-from-github-releases)
     - [Install from source](#install-from-source)
   - [Usage](#usage)
@@ -23,13 +24,21 @@ Welcome to the README for the `aio` command line tool – your gateway to seamle
   - [Aliases](#aliases)
   - [Contributing](#contributing)
 
+## NEW : Run code from code blocks
+
+You can now run code from code blocks using the flag `-r|--run`
+
+<p align="center">
+  <img src="./docs/new_run.gif" style="border-radius: 10px;"/>
+</p>
+
 ## Introduction
 
 The `aio` command line tool is designed to simplify your interactions with AI engines by providing an intuitive interface directly within your terminal. Harness the power of large language models such as the OpenAI API without leaving your command line environment.
 
 ## Installation
 
-## NEW : Install from crates.io
+## Install from crates.io
 
 You can now install aio from crates.io using the following command:
 
@@ -92,19 +101,31 @@ The `aio` command line tool supports the following arguments:
 
 - `--creds_path`: Path to the credentials file. Default is `~/.config/aio/creds.yaml`.
 
-- `-e|--engine`: Name of the AI engine to use. You can optionally append a custom prompt name from the [configuration file](#configuration) (e.g., `openai:command`).
+- `-e|--engine <ENGINE>`: Name of the AI engine to use. You can optionally append a custom prompt name from the [configuration file](#configuration) (e.g., `openai:command`).
+  List of ENGINEs:
+  - `openai`: OpenAI API
+  - `from-file`: Read prompts from a file. Useful to debug or test a file.
 
-- `-f|--formatter`: Formatter to use. Possible values: 
+- `-f|--formatter <FORMATTER>`: Formatter to use. Possible FORMATTERs: 
   - `markdown`: Parse the text response as markdown and format it in the console.
   - `raw`: Doesn't parse the response text. Just displays the raw text response.
   
   By default the formatter is set to `markdown` if in terminal/tty, otherwise `raw`.
 
+- `-r|--run <METHOD>`: Run code block if the language is supported. Possible METHODs:
+  - `no`: Doesn't run anything.
+  - `ask`: Ask to run code.
+  - `force`: Run code without asking.
+  
+  By default, `run` is set to `no`.
+
 - `input`: User text prompt that will be used for interaction with the AI engine.
 
 - `-h|--help`: Display the help message.
 
-Note : `aio` can't read input from stdin for now but will in the future.
+- `-V|--version`: Display the version.
+
+Note : `aio` can now read input from stdin instead of from parameters.
 
 ## Configuration
 
