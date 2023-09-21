@@ -54,7 +54,7 @@ impl<R: Renderer> Parser<R> {
                 self.renderer.push_token(token::Token::Newline)?;
                 self.previous_char = None;
             }
-            '*' | '_' | '`' => {
+            '*' | '_' | '`' if self.current_token.contains(c) || self.current_token.is_empty() => {
                 self.current_token.push(c);
             }
             '-' | '#' if self.previous_char.is_none() => self.current_token.push(c),
@@ -116,9 +116,9 @@ impl<R: Renderer> Parser<R> {
                 }
                 self.previous_char = self.current_token.chars().last();
             }
-
-            let is_begin = self.previous_char.map(|c| !c.is_alphanumeric()) == Some(true) || self.previous_char == None;
-            let is_end = !current_char.is_alphanumeric(); // note: newline MUST resets state, so no need to check
+            let check_char = |c: char| !(c.is_alphanumeric() || ['*', '_', '`'].contains(&c));
+            let is_begin = matches!(self.previous_char.map(check_char), Some(true) | None);
+            let is_end = check_char(current_char); // note: newline MUST resets state, so no need to check
             if is_begin == is_end && is_begin == false {
                 break 'skip;
             }
