@@ -54,7 +54,10 @@ impl<R: Renderer> Parser<R> {
                 self.renderer.push_token(token::Token::Newline)?;
                 self.previous_char = None;
             }
-            '*' | '_' | '`' if self.current_token.contains(c) || self.current_token.is_empty() => {
+            '*' | '_' if self.inline_style_tokens.last() != Some(&token::InlineStyleToken::OneQuote) && (self.current_token.contains(c) || self.current_token.is_empty()) => {
+                self.current_token.push(c);
+            }
+            '`' if self.current_token.contains(c) || self.current_token.is_empty() => {
                 self.current_token.push(c);
             }
             '-' | '#' if self.previous_char.is_none() => self.current_token.push(c),
