@@ -64,8 +64,10 @@ async fn main() -> Result<(), String> {
         if let None = args.input {
             use std::io::Read;
             let mut str_input = std::string::String::new();
-            std::io::stdin().lock().read_to_string(&mut str_input).map_err(|e| format!("Failed to read input from stdin: {}", e))?;
-            args.input = Some(str_input);
+            let mut stdin = std::io::stdin();
+            stdin.read_to_string(&mut str_input).map_err(|e| format!("Failed to read input from stdin: {}", e))?;
+            
+            args.input = Some(str_input.trim().to_string());
         }
         args::ProcessedArgs::from(args)
     };
