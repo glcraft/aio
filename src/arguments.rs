@@ -50,7 +50,7 @@ pub enum RunChoice {
     /// Run code without asking
     Force
 }
-
+#[derive(Default, Debug, Clone)]
 pub struct ProcessedArgs {
     pub config_path: String,
     pub creds_path: String,
