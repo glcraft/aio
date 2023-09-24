@@ -1,7 +1,7 @@
 [package]
 name = "aio-cli"
 description = "Streamlined AI Terminal Interactions"
-version = "0.7.3"
+version = "0.7.4"
 edition = "2021"
 authors = ["Gabin Lefranc <gabin.lefranc@gmail.com>"]
 readme = "README.md"
@@ -22,7 +22,7 @@ anyhow = "1.0"
 async-trait = "0.1"
 bytes = "1.1.0"
 clap = { version = "4.2.2", features = ["derive"] }
-crossterm = "0.26"
+crossterm = "0.27"
 num-traits = "0.2"
 once_cell = "1.18"
 pin-project = "1.1"

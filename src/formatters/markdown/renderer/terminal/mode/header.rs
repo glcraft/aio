@@ -50,11 +50,10 @@ impl Header {
         self.draw_text()
     }
     fn draw_text(&mut self) -> Result<(), Error> {
-        let pos_cursor = crossterm::cursor::position()?;
-        let new_cursor_pos = (0.max((self.header_width()? - self.len() as isize) / 2) as u16 , pos_cursor.1);
+        let new_cursor_pos = 0.max((self.header_width()? - self.len() as isize) / 2) as u16 ;
         
         queue!(std::io::stdout(), 
-            crossterm::cursor::MoveTo(new_cursor_pos.0, new_cursor_pos.1),
+            crossterm::cursor::MoveToColumn(new_cursor_pos),
         )?;
         self.styles.reset_styles()?;
         for token in &self.tokens {

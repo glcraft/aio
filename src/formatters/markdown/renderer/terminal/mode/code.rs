@@ -51,19 +51,17 @@ impl Code {
         (utils::CODE_BLOCK_COUNTER_SPACE + utils::CODE_BLOCK_MARGIN * 2) as _
     }
     fn draw_code_separator(sens: bool /* false: down, true: up */) -> Result<(), Error> {
-        let current_line_pos = crossterm::cursor::position()?.1;
         queue!(std::io::stdout(), 
-            crossterm::cursor::MoveTo(0, current_line_pos)
+            crossterm::cursor::MoveToColumn(0)
         )?;
         utils::draw_line()?;
+        crossterm::terminal::enable_raw_mode()?;
         queue!(std::io::stdout(), 
-            crossterm::cursor::MoveTo(Self::counter_space() as _, current_line_pos),
+            crossterm::cursor::MoveToColumn(Self::counter_space() as _),
             crossterm::style::Print(utils::CODE_BLOCK_LINE_CHAR[2+sens as usize]),
-            crossterm::cursor::MoveDown(1),
+            crossterm::cursor::MoveToColumn(0)
         )?;
-        if crossterm::cursor::position()?.0 > 0 {
-            queue!(std::io::stdout(), crossterm::cursor::MoveDown(1))?;
-        }
+        crossterm::terminal::disable_raw_mode()?;
         Ok(())
     }
     fn draw_newline(&self) -> Result<(), Error> {
