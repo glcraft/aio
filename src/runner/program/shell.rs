@@ -8,7 +8,7 @@ impl Program for ShellProgram {
             .arg("-c")
             .arg(&code_block.code);
         let child = process.spawn()?;
-        Ok(child.wait_with_output()?)
+        child.wait_with_output()
     }
 }
 impl ShellProgram {

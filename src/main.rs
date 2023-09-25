@@ -34,34 +34,55 @@ fn home_dir() -> &'static str {
         path
     });
 
-    &*HOME
+    &HOME
 }
 
 fn resolve_path(path: &str) -> Cow<str> {
-    if path.starts_with("~/") {
-        Cow::Owned(format!("{}{}{}", home_dir(), std::path::MAIN_SEPARATOR, &path[2..]))
+    if let Some(path) = path.strip_prefix("~/") {
+        Cow::Owned(format!("{}{}{}", home_dir(), std::path::MAIN_SEPARATOR, path))
     } else {
         Cow::Borrowed(path)
     }
 }
 
-fn get_config<P: AsRef<std::path::Path>>(path: P) -> Result<config::Config, String> {
-    let path = path.as_ref();
+fn get_config_path(path: &std::path::Path) -> Option<Cow<'_, std::path::Path>> {
     if path.exists() {
-        return config::Config::from_yaml_file(path).map_err(|e| e.to_string())
+        return Some(Cow::Borrowed(path))
     }
-    use std::io::Write;
-    let default_config = config::Config::default();
-    let yaml = serde_yaml::to_string(&default_config).map_err(|e| e.to_string())?;
-    std::fs::File::create(path).unwrap().write_all(yaml.as_bytes()).map_err(|e| e.to_string())?;
-    Ok(default_config)
+    let new_extension = match path.extension().and_then(|e| e.to_str()) {
+        Some("yml") => "yaml",
+        Some("yaml") => "yml",
+        _ => return None
+    };
+    let new_path = path.with_extension(new_extension);
+    if new_path.exists() {
+        return Some(Cow::Owned(new_path));
+    }
+    None
+}
+
+fn get_config<P: AsRef<std::path::Path>>(path: P) -> Result<config::Config, String> {
+    let found_path = get_config_path(path.as_ref());
+    let config = match found_path {
+        Some(found_path) => {
+            config::Config::from_yaml_file(found_path).map_err(|e| e.to_string())?
+        }
+        None => {
+            use std::io::Write;
+            let default_config = config::Config::default();
+            let yaml = serde_yaml::to_string(&default_config).map_err(|e| e.to_string())?;
+            std::fs::File::create(path).unwrap().write_all(yaml.as_bytes()).map_err(|e| e.to_string())?;
+            default_config
+        }
+    };
+    Ok(config)
 }
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
     let args = {
         let mut args = args::Args::parse();
-        if let None = args.input {
+        if args.input.is_none() {
             use std::io::Read;
             let mut str_input = std::string::String::new();
             let mut stdin = std::io::stdin();
@@ -71,7 +92,7 @@ async fn main() -> Result<(), String> {
         }
         args::ProcessedArgs::from(args)
     };
-    let config = get_config(resolve_path(&args.config_path).as_ref())?;
+    let config = get_config(resolve_path(&args.config_path).as_ref()).map_err(|e| format!("An error occured while loading or creating configuration file: {}", e))?;
     let creds = raise_str!(
         credentials::Credentials::from_yaml_file(resolve_path(&args.creds_path).as_ref()),
         "Failed to parse credentials file: {}"

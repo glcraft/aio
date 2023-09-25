@@ -88,7 +88,7 @@ impl ChatRequest {
         }
     }
     pub fn add_message(mut self, role: Role, content: String) -> Self {
-        self.messages.push(Message { role, content: content.into() });
+        self.messages.push(Message { role, content });
         self
     }
     pub fn add_messages(mut self, messages: Vec<Message>) -> Self {
@@ -145,7 +145,7 @@ impl std::fmt::Display for ChatResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
             ChatResponse::Message{choices, ..} => {
-                if choices.len() == 0 {
+                if choices.is_empty() {
                     return Ok(());
                 }
                 let choice = &choices[0];
@@ -170,7 +170,7 @@ impl ChatResponse {
         // eprintln!("from_bytes|1: {}", String::from_utf8_lossy(&bytes));
         if !bytes.starts_with(b"data: ") {
             use serde::de::Error;
-            let json = match serde_json::from_slice::<serde_json::Value>(&bytes) {
+            let json = match serde_json::from_slice::<serde_json::Value>(bytes) {
                 Ok(v) => v,
                 _ => return Err(serde_json::Error::custom("Not a data line")),
             };
@@ -185,8 +185,7 @@ impl ChatResponse {
         if bytes.starts_with(b"[DONE]") {
             return Ok(ChatResponse::Done);
         }
-        let result = serde_json::from_slice(&bytes);
-        result
+        serde_json::from_slice(bytes)
     }
     #[inline]
     pub fn from_bytes(bytes: bytes::Bytes) -> Result<Self, serde_json::Error> {
@@ -292,7 +291,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
             match resp {
                 Ok(msg @ ChatResponse::Message { .. }) => Some(Ok(msg.to_string())),
                 Ok(ChatResponse::Done) => None,
-                Err(e) => return Some(Err(e)),
+                Err(e) => Some(Err(e)),
             }
         });
     Ok(Box::pin(stream_string))

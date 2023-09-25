@@ -93,7 +93,7 @@ impl<R: Renderer> Parser<R> {
             self.renderer.push_token(token::Token::EndCode)?;
         }
         
-        return Ok(());
+        Ok(())
     }
     fn apply_text_token(&mut self, current_char: char, print_current_char: bool) -> Result<(), ParseError<R::Error>> {
         'skip: {
@@ -122,7 +122,7 @@ impl<R: Renderer> Parser<R> {
             let check_char = |c: char| !(c.is_alphanumeric() || ['*', '_', '`'].contains(&c));
             let is_begin = matches!(self.previous_char.map(check_char), Some(true) | None);
             let is_end = check_char(current_char); // note: newline MUST resets state, so no need to check
-            if is_begin == is_end && is_begin == false {
+            if is_begin == is_end && !is_begin {
                 break 'skip;
             }
             let inline_style = match self.current_token.as_str() {

@@ -10,7 +10,7 @@ impl Program for PythonProgram {
             .stdin(std::process::Stdio::piped());
         let mut child = process.spawn()?;
         child.stdin.take().expect("Failed to get stdin of python").write_all(code_block.code.as_bytes())?;
-        Ok(child.wait_with_output()?)
+        child.wait_with_output()
     }
 }
 impl PythonProgram {

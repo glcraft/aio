@@ -2,18 +2,13 @@ use super::super::super::token::Token;
 use super::super::utils;
 use crossterm::queue;
 use std::io::Error;
+
+#[derive(Default)]
 pub struct Code {
     index: usize,
     language: Option<String>
 }
-impl Default for Code {
-    fn default() -> Self {
-        Code {
-            index: 0,
-            language: None
-        }
-    }
-}
+
 impl Code {
     pub fn new() -> Self {
         Code {

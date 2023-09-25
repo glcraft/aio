@@ -5,10 +5,10 @@ use clap::{Parser, ValueEnum};
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     /// Configuration file
-    #[arg(long, default_value_t = String::from("~/.config/aio/config.yaml"))]
+    #[arg(long, default_value_t = String::from("~/.config/aio/config.yml"))]
     pub config_path: String,
     /// Credentials file
-    #[arg(long, default_value_t = String::from("~/.config/aio/creds.yaml"))]
+    #[arg(long, default_value_t = String::from("~/.config/aio/creds.yml"))]
     pub creds_path: String,
     /// Engine name
     /// 
