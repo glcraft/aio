@@ -124,9 +124,9 @@ impl Runner {
                 println!("Index out of range");
                 continue;
             }
-            print!("\n");
+            println!();
             program::run(&self.codes[index as usize-1])?;
-            print!("\n");
+            println!();
         }
     }
 }

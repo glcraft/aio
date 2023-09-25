@@ -9,7 +9,7 @@ impl Program for RustProgram {
 
         let mut rustc_process = std::process::Command::new(&self.0);
         rustc_process
-            .args(&[
+            .args([
                 "-o",
                 tmp_path,
                 "-",
@@ -29,7 +29,7 @@ impl Program for RustProgram {
 impl RustProgram {
     pub(super) fn search() -> SearchStatus {
         match search_program("rustc") {
-            Ok(Some(found)) => return SearchStatus::Found(Box::new(Self(found))),
+            Ok(Some(found)) => SearchStatus::Found(Box::new(Self(found))),
             Err(e) => SearchStatus::Error(e),
             _ => SearchStatus::NotFound
         }

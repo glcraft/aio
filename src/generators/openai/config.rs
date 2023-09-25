@@ -60,7 +60,7 @@ impl Prompt {
         }
     }
     pub fn format_contents(mut self, args: &crate::args::ProcessedArgs) -> Self {
-        self.messages.iter_mut().map(|m| m.format_content_as_ref(&args)).for_each(|_| ());
+        self.messages.iter_mut().map(|m| m.format_content_as_ref(args)).for_each(|_| ());
         self
     }
 }

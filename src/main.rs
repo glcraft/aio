@@ -34,12 +34,12 @@ fn home_dir() -> &'static str {
         path
     });
 
-    &*HOME
+    &HOME
 }
 
 fn resolve_path(path: &str) -> Cow<str> {
-    if path.starts_with("~/") {
-        Cow::Owned(format!("{}{}{}", home_dir(), std::path::MAIN_SEPARATOR, &path[2..]))
+    if let Some(path) = path.strip_prefix("~/") {
+        Cow::Owned(format!("{}{}{}", home_dir(), std::path::MAIN_SEPARATOR, path))
     } else {
         Cow::Borrowed(path)
     }
@@ -47,9 +47,9 @@ fn resolve_path(path: &str) -> Cow<str> {
 
 fn get_config_path(path: &std::path::Path) -> Option<Cow<'_, std::path::Path>> {
     if path.exists() {
-        return Some(Cow::Borrowed(path.as_ref()))
+        return Some(Cow::Borrowed(path))
     }
-    let new_extension = match path.extension().map(|e| e.to_str()).flatten() {
+    let new_extension = match path.extension().and_then(|e| e.to_str()) {
         Some("yml") => "yaml",
         Some("yaml") => "yml",
         _ => return None
@@ -82,7 +82,7 @@ fn get_config<P: AsRef<std::path::Path>>(path: P) -> Result<config::Config, Stri
 async fn main() -> Result<(), String> {
     let args = {
         let mut args = args::Args::parse();
-        if let None = args.input {
+        if args.input.is_none() {
             use std::io::Read;
             let mut str_input = std::string::String::new();
             let mut stdin = std::io::stdin();

@@ -18,7 +18,7 @@ pub enum CacheError {
 }
 
 static CACHE: once_cell::sync::Lazy<Result<RwLock<Cache>, CacheError>> = once_cell::sync::Lazy::new(|| {
-    Cache::load().map(|cache| RwLock::new(cache))
+    Cache::load().map(RwLock::new)
 });
 
 impl Cache {
@@ -32,8 +32,8 @@ impl Cache {
             Err(e) => return Err(e.into()),
         };
         match serde_yaml::from_reader(cache_file) {
-            Ok(cache) => return Ok(cache),
-            Err(e) => return Err(e.into()),
+            Ok(cache) => Ok(cache),
+            Err(e) => Err(e.into()),
         }
     }
     fn save(&self) -> Result<(), CacheError> {
