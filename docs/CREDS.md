@@ -13,7 +13,7 @@
 
 The credentials configuration file is used to store sensitive information, such as API keys and other secrets required for authenticating with various APIs. In the context of the `aio` project, this file stores the API keys used for interacting with AI engines like the OpenAI API. This is a separate file from `config.yaml` configuration file to easily share the configuration without compromising security.
 
-By default, `aio` will try to read the credentials configuration file from `~/.config/aio/creds.yaml`. You can also specify the path to the credentials configuration file using the `--creds-path` argument. For example: `aio --creds-path ./creds.yaml`.
+By default, `aio` will try to read the credentials configuration file from `~/.cache/aio/creds.yaml`. You can also specify the path to the credentials configuration file using the `--creds-path` argument. For example: `aio --creds-path ./creds.yaml`.
 
 ## File Structure
 

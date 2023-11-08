@@ -6,9 +6,14 @@ Welcome to the README for the `aio` command line tool – your gateway to seamle
   <img src="./docs/output2.gif" style="border-radius: 10px;"/>
 </p>
 
+## 0.8 BREAKING CHANGES
+
+The default credentials path has changed from `~/.config/aio/creds.yml` to `~/.cache/aio/creds.yml`.
+
 ## Table of Contents
 
 - [aio - Streamlined AI Terminal Interactions](#aio---streamlined-ai-terminal-interactions)
+  - [0.8 BREAKING CHANGES](#08-breaking-changes)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Installation](#installation)
