@@ -2,6 +2,8 @@ use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use thiserror::Error;
 use serde::{Deserialize, Serialize};
 
+use crate::filesystem;
+
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Cache {
     programs: std::collections::HashMap<String, String>,
@@ -59,7 +61,7 @@ impl Cache {
         }
     }
     fn cache_path() -> std::path::PathBuf {
-        std::path::Path::new(crate::home_dir()).join(".cache").join("aio.yaml")
+        std::path::Path::new(filesystem::cache_dir()).join("aio.yaml")
     }
 }
 pub fn get_program(program: &str) -> Option<String> {
