@@ -17,18 +17,28 @@ pub fn home_dir() -> &'static str {
 
 pub fn config_dir() -> &'static str {
     static CONFIG: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
-        std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| {
+        let config_path = std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| {
             format!("{}{}.config", home_dir(), std::path::MAIN_SEPARATOR)
-        })
+        });
+        let config_path = format!("{}/aio", config_path);
+        if !std::path::Path::new(&config_path).exists() {
+            std::fs::create_dir(&config_path).expect("Failed to create config directory");
+        }
+        config_path
     });
     &CONFIG
 }
 
 pub fn cache_dir() -> &'static str {
     static CACHE: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
-        std::env::var("XDG_CACHE_HOME").unwrap_or_else(|_| {
+        let cache_path = std::env::var("XDG_CACHE_HOME").unwrap_or_else(|_| {
             format!("{}{}.cache", home_dir(), std::path::MAIN_SEPARATOR)
-        })
+        });
+        let cache_path = format!("{}/aio", cache_path);
+        if !std::path::Path::new(&cache_path).exists() {
+            std::fs::create_dir(&cache_path).expect("Failed to create config directory");
+        }
+        cache_path
     });
     &CACHE
 }
