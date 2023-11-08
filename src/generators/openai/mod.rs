@@ -282,7 +282,12 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
 
     let stream_string = stream
         .map(|input| -> Result<_, Error> {
-            Ok(SplitBytes::new(input?, b"\n\n"))
+            let input = input?;
+            // use std::io::Write;
+            // let mut f = std::fs::File::options().create(true).append(true).open(format!("{}/log.txt", crate::filesystem::cache_dir())).expect("Failed to open log file");
+            // f.write_all(&input);
+            // f.write_all(b"\n---\n");
+            Ok(SplitBytes::new(input, b"\n\n"))
         })
         .flatten_stream()
         .map(|v| {
