@@ -5,7 +5,7 @@ mod formatters;
 mod config;
 mod credentials;
 mod serde_io;
-use std::borrow::Cow;
+mod filesystem;
 
 use clap::Parser;
 use serde_io::DeserializeExt;
@@ -22,62 +22,6 @@ macro_rules! raise_str {
     };
 }
 
-fn home_dir() -> &'static str {
-    static HOME: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
-        #[cfg(unix)]
-        let path = std::env::var("HOME")
-            .expect("Failed to resolve home path");
-        
-        #[cfg(windows)]
-        let path = std::env::var("USERPROFILE")
-            .expect("Failed to resolve user profile path");
-        path
-    });
-
-    &HOME
-}
-
-fn resolve_path(path: &str) -> Cow<str> {
-    if let Some(path) = path.strip_prefix("~/") {
-        Cow::Owned(format!("{}{}{}", home_dir(), std::path::MAIN_SEPARATOR, path))
-    } else {
-        Cow::Borrowed(path)
-    }
-}
-
-fn get_config_path(path: &std::path::Path) -> Option<Cow<'_, std::path::Path>> {
-    if path.exists() {
-        return Some(Cow::Borrowed(path))
-    }
-    let new_extension = match path.extension().and_then(|e| e.to_str()) {
-        Some("yml") => "yaml",
-        Some("yaml") => "yml",
-        _ => return None
-    };
-    let new_path = path.with_extension(new_extension);
-    if new_path.exists() {
-        return Some(Cow::Owned(new_path));
-    }
-    None
-}
-
-fn get_config<P: AsRef<std::path::Path>>(path: P) -> Result<config::Config, String> {
-    let found_path = get_config_path(path.as_ref());
-    let config = match found_path {
-        Some(found_path) => {
-            config::Config::from_yaml_file(found_path).map_err(|e| e.to_string())?
-        }
-        None => {
-            use std::io::Write;
-            let default_config = config::Config::default();
-            let yaml = serde_yaml::to_string(&default_config).map_err(|e| e.to_string())?;
-            std::fs::File::create(path).unwrap().write_all(yaml.as_bytes()).map_err(|e| e.to_string())?;
-            default_config
-        }
-    };
-    Ok(config)
-}
-
 #[tokio::main]
 async fn main() -> Result<(), String> {
     let args = {
@@ -92,9 +36,9 @@ async fn main() -> Result<(), String> {
         }
         args::ProcessedArgs::from(args)
     };
-    let config = get_config(resolve_path(&args.config_path).as_ref()).map_err(|e| format!("An error occured while loading or creating configuration file: {}", e))?;
+    let config = config::Config::from_yaml_file(filesystem::resolve_path(&args.config_path).as_ref()).map_err(|e| format!("An error occured while loading or creating configuration file: {}", e))?;
     let creds = raise_str!(
-        credentials::Credentials::from_yaml_file(resolve_path(&args.creds_path).as_ref()),
+        credentials::Credentials::from_yaml_file(filesystem::resolve_path(&args.creds_path).as_ref()),
         "Failed to parse credentials file: {}"
     );
 

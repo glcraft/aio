@@ -31,3 +31,21 @@ pub fn format_content<'a>(content: &'a str, args: &args::ProcessedArgs) -> Cow<'
     })
 }
 
+impl Config {
+    pub fn from_yaml_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self, String> {
+        let found_path = crate::filesystem::config_path(path.as_ref());
+        let config = match found_path {
+            Some(found_path) => {
+                Self::from_yaml_file(found_path).map_err(|e| e.to_string())?
+            }
+            None => {
+                use std::io::Write;
+                let default_config = Self::default();
+                let yaml = serde_yaml::to_string(&default_config).map_err(|e| e.to_string())?;
+                std::fs::File::create(path).unwrap().write_all(yaml.as_bytes()).map_err(|e| e.to_string())?;
+                default_config
+            }
+        };
+        Ok(config)
+    }
+}
