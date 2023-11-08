@@ -36,7 +36,7 @@ impl Config {
         let found_path = crate::filesystem::config_path(path.as_ref());
         let config = match found_path {
             Some(found_path) => {
-                Self::from_yaml_file(found_path).map_err(|e| e.to_string())?
+                <Self as DeserializeExt>::from_yaml_file(found_path).map_err(|e| e.to_string())?
             }
             None => {
                 use std::io::Write;
