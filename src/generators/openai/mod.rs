@@ -199,6 +199,40 @@ impl ChatResponse {
     }
 }
 
+struct SplitBytesFactory<Sep> 
+where 
+    Sep: AsRef<[u8]>
+{
+    separator: Sep,
+    rest: Vec<u8>,
+}
+
+impl<Sep> SplitBytesFactory<Sep> 
+where
+    Sep: AsRef<[u8]> + Clone
+{
+    fn new(separator: Sep) -> Self {
+        Self {
+            separator,
+            rest: Vec::new(),
+        }
+    }
+    fn new_iter(&mut self, bytes: Bytes) -> SplitBytes<Sep> {
+        let sep_len = self.separator.as_ref().len();
+        let pos_last_separator = bytes.len() - (sep_len + bytes
+            .windows(self.separator.as_ref().len())
+            .rev()
+            .position(|b| b == self.separator.as_ref())
+            .unwrap_or(bytes.len()));
+        
+        let mut current = Vec::new();
+        std::mem::swap(&mut current, &mut self.rest);
+        current.append(&mut bytes.slice(..pos_last_separator).to_vec());
+        self.rest = bytes.slice((pos_last_separator + sep_len)..).to_vec();
+        SplitBytes::new(Bytes::from(current), self.separator.clone())
+    }
+}
+
 struct SplitBytes<Sep> 
 where 
     Sep: AsRef<[u8]>
@@ -280,8 +314,10 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
         .await?
         .bytes_stream();
 
+    let mut split_bytes_factory = SplitBytesFactory::new(b"\n\n");
+
     let stream_string = stream
-        .map(|input| -> Result<_, Error> {
+        .map(move |input| -> Result<_, Error> {
             let input = input?;
             #[cfg(debug_assertions)]
             {
@@ -303,6 +339,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
                 });
             }
             
+            Ok(split_bytes_factory.new_iter(input))
         })
         .flatten_stream()
         .map(|v| {
