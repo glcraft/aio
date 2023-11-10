@@ -181,7 +181,7 @@ impl ChatResponse {
             return if let Some(error) = json.get("error") {
                 Err(serde_json::Error::custom(format!("OpenAI Error (type: {}, code: {}): {}", error["type"].as_str().unwrap_or(""), error["code"].as_str().unwrap_or(""), error["message"].as_str().unwrap_or(""))))
             } else if let Some(status) = json.get("status") {
-                Ok(ChatResponse::Status { status: status.as_str().ok_or(serde_json::Error::custom("Json found but unknown format"))?.to_string() })
+                Ok(ChatResponse::Status { status: status.as_str().ok_or(serde_json::Error::custom("OpenAI Status is not a string"))?.to_string() })
             } else {
                 Err(serde_json::Error::custom("Json found but unknown format"))
             }
