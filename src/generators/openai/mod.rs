@@ -137,6 +137,9 @@ enum ChatResponse {
         // model: String,
         choices: Vec<Choice>,
     },
+    Status {
+        status: String
+    },
     #[serde(rename = "[DONE]")]
     Done,
 }
@@ -154,6 +157,7 @@ impl std::fmt::Display for ChatResponse {
                 }
                 Ok(())
             },
+            ChatResponse::Status { status } => write!(f, "<Status from OpenAI API: {}>", status),
             ChatResponse::Done => {
                 if cfg!(feature = "debug") {
                     write!(f, "\n<<Stream finished>>")
@@ -176,6 +180,8 @@ impl ChatResponse {
             };
             return if let Some(error) = json.get("error") {
                 Err(serde_json::Error::custom(format!("OpenAI Error (type: {}, code: {}): {}", error["type"].as_str().unwrap_or(""), error["code"].as_str().unwrap_or(""), error["message"].as_str().unwrap_or(""))))
+            } else if let Some(status) = json.get("status") {
+                Ok(ChatResponse::Status { status: status.as_str().ok_or(serde_json::Error::custom("OpenAI Status is not a string"))?.to_string() })
             } else {
                 Err(serde_json::Error::custom("Json found but unknown format"))
             }
@@ -190,6 +196,40 @@ impl ChatResponse {
     #[inline]
     pub fn from_bytes(bytes: bytes::Bytes) -> Result<Self, serde_json::Error> {
         Self::from_slice(&bytes)
+    }
+}
+
+struct SplitBytesFactory<Sep> 
+where 
+    Sep: AsRef<[u8]>
+{
+    separator: Sep,
+    rest: Vec<u8>,
+}
+
+impl<Sep> SplitBytesFactory<Sep> 
+where
+    Sep: AsRef<[u8]> + Clone
+{
+    fn new(separator: Sep) -> Self {
+        Self {
+            separator,
+            rest: Vec::new(),
+        }
+    }
+    fn new_iter(&mut self, bytes: Bytes) -> SplitBytes<Sep> {
+        let sep_len = self.separator.as_ref().len();
+        let pos_last_separator = bytes.len() - (sep_len + bytes
+            .windows(self.separator.as_ref().len())
+            .rev()
+            .position(|b| b == self.separator.as_ref())
+            .unwrap_or(bytes.len()));
+        
+        let mut current = Vec::new();
+        std::mem::swap(&mut current, &mut self.rest);
+        current.append(&mut bytes.slice(..pos_last_separator).to_vec());
+        self.rest = bytes.slice((pos_last_separator + sep_len)..).to_vec();
+        SplitBytes::new(Bytes::from(current), self.separator.clone())
     }
 }
 
@@ -274,9 +314,32 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
         .await?
         .bytes_stream();
 
+    let mut split_bytes_factory = SplitBytesFactory::new(b"\n\n");
+
     let stream_string = stream
-        .map(|input| -> Result<_, Error> {
-            Ok(SplitBytes::new(input?, b"\n\n"))
+        .map(move |input| -> Result<_, Error> {
+            let input = input?;
+            #[cfg(debug_assertions)]
+            {
+                use std::io::Write;
+                static LOG: once_cell::sync::Lazy<std::sync::Mutex<std::fs::File>> = once_cell::sync::Lazy::new(|| {
+                    std::sync::Mutex::new(
+                        std::fs::File::options()
+                            .create(true)
+                            .write(true)
+                            .open(format!("{}/openai_stream.txt", crate::filesystem::cache_dir()))
+                            .expect("Failed to open log file")
+                    )
+                });
+                LOG.lock().and_then(|mut log|{
+                    log.write_all(&input)
+                        .and_then(|_| log.write_all(b"\n---\n"))
+                        .expect("Debug: Failed to write to log file");
+                    Ok(())
+                });
+            }
+            
+            Ok(split_bytes_factory.new_iter(input))
         })
         .flatten_stream()
         .map(|v| {
@@ -289,7 +352,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
         })
         .map_while(|resp| {
             match resp {
-                Ok(msg @ ChatResponse::Message { .. }) => Some(Ok(msg.to_string())),
+                Ok(msg @ (ChatResponse::Message { .. } | ChatResponse::Status{ .. })) => Some(Ok(msg.to_string())),
                 Ok(ChatResponse::Done) => None,
                 Err(e) => Some(Err(e)),
             }

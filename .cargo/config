@@ -1,6 +1,6 @@
 [target.aarch64-unknown-linux-musl]
 linker = "aarch64-linux-musl-gcc"
-rustflags = ["-Zgcc-ld=lld"]
+rustflags = ["-Clinker=rust-lld"]
 
 [target.x86_64-unknown-linux-musl]
 linker = "x86_64-linux-musl-gcc"
