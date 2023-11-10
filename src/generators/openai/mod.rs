@@ -327,7 +327,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
                         std::fs::File::options()
                             .create(true)
                             .write(true)
-                            .open(format!("{}/log.txt", crate::filesystem::cache_dir()))
+                            .open(format!("{}/openai_stream.txt", crate::filesystem::cache_dir()))
                             .expect("Failed to open log file")
                     )
                 });
