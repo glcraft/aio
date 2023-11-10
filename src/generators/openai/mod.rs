@@ -283,11 +283,26 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
     let stream_string = stream
         .map(|input| -> Result<_, Error> {
             let input = input?;
-            // use std::io::Write;
-            // let mut f = std::fs::File::options().create(true).append(true).open(format!("{}/log.txt", crate::filesystem::cache_dir())).expect("Failed to open log file");
-            // f.write_all(&input);
-            // f.write_all(b"\n---\n");
-            Ok(SplitBytes::new(input, b"\n\n"))
+            #[cfg(debug_assertions)]
+            {
+                use std::io::Write;
+                static LOG: once_cell::sync::Lazy<std::sync::Mutex<std::fs::File>> = once_cell::sync::Lazy::new(|| {
+                    std::sync::Mutex::new(
+                        std::fs::File::options()
+                            .create(true)
+                            .write(true)
+                            .open(format!("{}/log.txt", crate::filesystem::cache_dir()))
+                            .expect("Failed to open log file")
+                    )
+                });
+                LOG.lock().and_then(|mut log|{
+                    log.write_all(&input)
+                        .and_then(|_| log.write_all(b"\n---\n"))
+                        .expect("Debug: Failed to write to log file");
+                    Ok(())
+                });
+            }
+            
         })
         .flatten_stream()
         .map(|v| {
