@@ -27,20 +27,27 @@ macro_rules! raise_str {
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let args = {
-        let mut args = args::Args::parse();
-        if args.input.is_none() {
-            use std::io::Read;
-            let mut str_input = std::string::String::new();
-            let mut stdin = std::io::stdin();
-            stdin
-                .read_to_string(&mut str_input)
-                .map_err(|e| format!("Failed to read input from stdin: {}", e))?;
+    let args: args::CliCommands = args::Cli::parse().into();
 
-            args.input = Some(str_input.trim().to_string());
-        }
-        args::ProcessedArgs::from(args)
-    };
+    match args {
+        args::CliCommands::Ask(args) => command_ask(args),
+        _ => unimplemented!()
+    }.await
+}
+
+async fn command_ask(mut args: args::AskArgs) -> Result<(), String> {
+    if args.input.is_none() {
+        use std::io::Read;
+        let mut str_input = std::string::String::new();
+        let mut stdin = std::io::stdin();
+        stdin
+            .read_to_string(&mut str_input)
+            .map_err(|e| format!("Failed to read input from stdin: {}", e))?;
+
+        args.input = Some(str_input.trim().to_string());
+    }
+    let args = args::ProcessedArgs::from(args);
+    
     let config =
         config::Config::from_yaml_file(filesystem::resolve_path(&args.config_path).as_ref())
             .map_err(|e| {
@@ -92,4 +99,3 @@ async fn main() -> Result<(), String> {
     raise_str!(runner.end_of_document(), "Failed to run code: {}");
     Ok(())
 }
-

@@ -1,9 +1,37 @@
-use clap::{Parser, ValueEnum};
+use clap::{Parser, ValueEnum, Args, Subcommand};
 
-/// Program to communicate with large language models and AI API 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-pub struct Args {
+pub struct Cli {
+    #[command(subcommand)]
+    command: Option<CliCommands>,
+    #[command(flatten)]
+    ask: Option<AskArgs>,
+}
+impl From<Cli> for CliCommands {
+    fn from(args: Cli) -> Self {
+        args.command.unwrap_or(CliCommands::Ask(args.ask.unwrap()))
+    }
+}
+
+#[derive(Subcommand, Debug)]
+pub enum CliCommands {
+    Ask(AskArgs),
+    Config {
+        /// Configuration file
+        #[arg(long, default_value_t = format!("{1}{0}config.yml", std::path::MAIN_SEPARATOR, crate::filesystem::config_dir()))]
+        config_path: String,
+    },
+    Creds {
+        /// Credentials file
+        #[arg(long, default_value_t = format!("{1}{0}creds.yml", std::path::MAIN_SEPARATOR, crate::filesystem::cache_dir()))]
+        creds_path: String,
+    }
+}
+
+/// Program to communicate with large language models and AI API 
+#[derive(Args, Debug)]
+pub struct AskArgs {
     /// Configuration file
     #[arg(long, default_value_t = format!("{1}{0}config.yml", std::path::MAIN_SEPARATOR, crate::filesystem::config_dir()))]
     pub config_path: String,
@@ -60,8 +88,8 @@ pub struct ProcessedArgs {
     pub input: String,
 }
 
-impl From<Args> for ProcessedArgs {
-    fn from(args: Args) -> Self {
+impl From<AskArgs> for ProcessedArgs {
+    fn from(args: AskArgs) -> Self {
         Self {
             config_path: args.config_path,
             creds_path: args.creds_path,
