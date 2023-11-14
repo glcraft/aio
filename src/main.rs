@@ -69,7 +69,7 @@ async fn main() -> Result<(), String> {
 
     let mut stream = match engine {
         "openai" => generators::openai::run(creds.openai, config, args).await,
-        "from-file" => generators::debug::run(config, args).await,
+        "from-file" => generators::from_file::run(config, args).await,
         _ => panic!("Unknown engine: {}", engine),
     }
     .map_err(|e| format!("Failed to request OpenAI API: {}", e))?;
