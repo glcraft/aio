@@ -1,13 +1,14 @@
 pub mod config;
 pub mod credentials;
-mod flatten_stream;
 
-use flatten_stream::FlattenTrait;
 use serde::{Serialize, Deserialize};
 use tokio_stream::StreamExt;
 use crate::{
     args,
-    utils::SplitBytesFactory
+    utils::{
+        SplitBytesFactory,
+        FlattenTrait
+    }
 };
 use self::config::Prompt;
 
