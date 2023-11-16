@@ -60,7 +60,7 @@ impl<Sep> SplitBytes<Sep>
 where
     Sep: AsRef<[u8]>
 {
-    fn new(bytes: Bytes, separator: Sep) -> Self {
+    pub fn new(bytes: Bytes, separator: Sep) -> Self {
         Self {
             bytes,
             separator,
