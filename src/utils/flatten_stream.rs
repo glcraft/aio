@@ -1,13 +1,25 @@
 use tokio_stream::Stream;
+use std::pin::Pin;
 
 pub trait FlattenTrait: Stream
 {
-    fn flatten_stream(self) -> Flatten<Self>
+    fn flatten_iter(self) -> Flatten<StreamIter<Self, <Self as Stream>::Item>>
     where 
         Self: Sized,
+        Self::Item: Iterator
     {
         Flatten {
-            stream: self,
+            stream: StreamIter(self),
+            current: None
+        }
+    }
+    fn flatten_result_iter<It, E>(self) -> Flatten<StreamResultIter<Self, It, E>>
+    where
+        Self: Sized + Stream<Item=Result<It, E>>,
+        It: Iterator 
+    {
+        Flatten {
+            stream: StreamResultIter(self),
             current: None
         }
     }
@@ -22,76 +34,60 @@ where
     stream: St,
     current: Option<<St as Stream>::Item>
 }
+#[pin_project::pin_project]
+pub struct StreamIter<St, It>(#[pin] St)
+where
+    St: Stream<Item=It>,
+    It: Iterator;
 
-// impl<I> FlattenTrait for I 
-// where
-//     I: Stream,
-//     <I as Stream>::Item: Stream + Unpin,
-//     <<I as Stream>::Item as Stream>::Item: Stream + Unpin,
-// {
-//     fn flatten_stream(self) -> Flatten<Self> {
-//         Flatten {
-//             stream: self,
-//             current: None
-//         }
-//     }
-// }
+impl<St, It> Stream for StreamIter<St, It>
+where
+    St: Stream<Item=It>,
+    It: Iterator
+{
+    type Item = St::Item;
+    #[inline]
+    fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<<Self as Stream>::Item>> {
+        self.as_mut().project().0.poll_next(cx)
+    }
+}
 
-// impl<I> Stream for Flatten<I>
-// where
-//     I: Stream,
-//     <I as Stream>::Item: Stream + Unpin,
-//     <<I as Stream>::Item as Stream>::Item: Stream + Unpin,
-// {
-//     type Item = <<I as Stream>::Item as Stream>::Item;
-//     fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
-//         use std::task::Poll::*;
-//         use std::pin::pin;
-//         match self.current {
-//             Some(ref mut item) => {
-//                 let item = pin!(item).poll_next(cx);
-//                 match item {
-//                     Ready(None) => {
-//                         self.current = None;
-//                         self.poll_next(cx)
-//                     }
-//                     v => v,
-//                 }
-//             }
-//             None => {
-//                 let item = pin!(self.stream).poll_next(cx);
-//                 match item {
-//                     Ready(Some(item)) => {
-//                         self.current = Some(item);
-//                         self.poll_next(cx)
-//                     }
-//                     Ready(None) => Ready(None),
-//                     Pending => Pending,
-//                 }
-//             }
-//         }
-//     }
-// }
+#[pin_project::pin_project]
+pub struct StreamResultIter<St, It, E>(#[pin] St)
+where
+    St: Stream<Item=Result<It, E>>,
+    It: Iterator;
 
+impl<St, It, E> Stream for StreamResultIter<St, It, E>
+where
+    St: Stream<Item=Result<It, E>>,
+    It: Iterator
+{
+    type Item = St::Item;
+    #[inline]
+    fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<<Self as Stream>::Item>> {
+        self.as_mut().project().0.poll_next(cx)
+    }
+}
 
 impl<St: ?Sized> FlattenTrait for St where St: Stream {}
 
 /// Implementation of Flatten for Result of Iterator
-impl<It, E, St> Stream for Flatten<St>
+impl<St, It, E> Stream for Flatten<StreamResultIter<St, It, E>>
 where
-    St: Stream<Item = Result<It, E>>,
-    It: Iterator
+    St: Stream<Item=Result<It, E>>,
+    It: Iterator,
 {
-    type Item = Result<<It as Iterator>::Item, E>;
+    type Item = Result<It::Item, E>;
     fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<<Self as Stream>::Item>> {
         use std::task::Poll::*;
-        
-        match self.as_mut().project().current {
-            Some(Ok(ref mut item)) => {
-                let item = item.next();
+        let self_project = self.as_mut().project();
+        match self_project.current {
+            current @ Some(Ok(_)) => {
+                let item = unsafe { current.as_mut().unwrap_unchecked().as_mut().unwrap_unchecked().next() };
                 match item {
                     None => {
-                        *self.as_mut().project().current = None;
+                        *current = None;
                         self.poll_next(cx)
                     }
                     Some(v) => Ready(Some(Ok(v))),
@@ -104,10 +100,10 @@ where
                 Ready(Some(Err(emv)))
             },
             None => {
-                let item = self.as_mut().project().stream.poll_next(cx);
+                let item = self_project.stream.poll_next(cx);
                 match item {
                     Ready(Some(item)) => {
-                        *self.as_mut().project().current = Some(item);
+                        *self_project.current = Some(item);
                         self.poll_next(cx)
                     }
                     Ready(None) => Ready(None),
@@ -118,40 +114,39 @@ where
     }
 }
 
-
 // Implementation of Flatten for Iterator
 
-// impl<St, It> Stream for Flatten<St>
-// where
-//     St: Stream<Item = It>,
-//     It: Iterator
-// {
-//     type Item = <It as Iterator>::Item;
-//     fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<<Self as Stream>::Item>> {
-//         use std::task::Poll::*;
-//         use std::pin::pin;
-//         match self.current {
-//             Some(ref mut item) => {
-//                 let item = item.next();
-//                 match item {
-//                     None => {
-//                         self.current = None;
-//                         self.poll_next(cx)
-//                     }
-//                     v => Ready(v),
-//                 }
-//             }
-//             None => {
-//                 let item = pin!(self.stream).poll_next(cx);
-//                 match item {
-//                     Ready(Some(item)) => {
-//                         self.current = Some(item);
-//                         self.poll_next(cx)
-//                     }
-//                     Ready(None) => Ready(None),
-//                     Pending => Pending,
-//                 }
-//             }
-//         }
-//     }
-// }
+impl<St, It> Stream for Flatten<StreamIter<St, It>>
+where
+    St: Stream<Item = It>,
+    It: Iterator
+{
+    type Item = <It as Iterator>::Item;
+    fn poll_next(mut self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<<Self as Stream>::Item>> {
+        use std::task::Poll::*;
+        let self_project = self.as_mut().project();
+        match self_project.current {
+            current @ Some(_) => {
+                let item = unsafe { current.as_mut().unwrap_unchecked().next()};
+                match item {
+                    None => {
+                        *current = None;
+                        self.poll_next(cx)
+                    }
+                    v => Ready(v),
+                }
+            }
+            current @ None => {
+                let item = self_project.stream.poll_next(cx);
+                match item {
+                    Ready(Some(item)) => {
+                        *current = Some(item);
+                        self.poll_next(cx)
+                    }
+                    Ready(None) => Ready(None),
+                    Pending => Pending,
+                }
+            }
+        }
+    }
+}

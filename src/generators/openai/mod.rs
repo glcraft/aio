@@ -260,7 +260,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
             
             Ok(split_bytes_factory.new_iter(input))
         })
-        .flatten_stream()
+        .flatten_result_iter()
         .map(|v| {
             let v = v?;
             let chat_resp = ChatResponse::from_bytes(v);
