@@ -119,12 +119,12 @@ impl Default for ChatRequest {
 
 
 #[derive(Debug, Deserialize)]
-struct Delta {
+pub(super) struct Delta {
     // pub role: Option<Role>,
     pub content: Option<String>
 }
 #[derive(Debug, Deserialize)]
-struct Choice {
+pub(super) struct Choice {
     pub delta: Delta,
     // pub index: u32,
     // pub finish_reason: Option<String>,
@@ -132,7 +132,7 @@ struct Choice {
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-enum ChatResponse {
+pub(super) enum ChatResponse {
     Message{
         // id: String,
         // object: String,
