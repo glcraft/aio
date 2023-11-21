@@ -29,9 +29,6 @@ where
         let complete = match pos_last_separator_found {
             Some(pos_last_separator) => {
                 let pos_last_separator = bytes.len() - pos_last_separator;
-                unsafe {
-                    println!("pos_last_separator: {}", String::from_utf8_unchecked(bytes.slice(..pos_last_separator).to_vec()));
-                }
                 let mut current = Vec::new();
                 std::mem::swap(&mut current, &mut self.rest);
                 current.append(&mut bytes.slice(..pos_last_separator).to_vec());
