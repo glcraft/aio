@@ -40,5 +40,10 @@ tokio-util = {version = "0.7", features = ["io"]}
 
 aio-cargo-info = { path = "./crates/aio-cargo-info", version = "0.1" }
 
+[features]
+default = ["sql", "openai", "local-llm"]
+local-llm = []
+ollama = []
+
 [target.'cfg(target_os = "linux")'.dependencies]
 openssl = {version = "0.10", features = ["vendored"]}
