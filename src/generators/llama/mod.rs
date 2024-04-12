@@ -3,7 +3,7 @@ use tokio::sync::Mutex;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
 use llama_cpp::{
-    LlamaModel, LlamaSession, LlamaParams, SessionParams,
+    LlamaModel, LlamaParams, SessionParams,TokensToStrings,
     standard_sampler::StandardSampler
 };
 use once_cell::sync::{Lazy, OnceCell};
@@ -48,10 +48,11 @@ pub async fn run(
         .map_err(|_| Error::Custom("Failed to advance context".into()))?;
 
     let completion = session
-        .start_completing_with(StandardSampler::default(), 1024)
-        .into_strings();
-    let completion_stream = StreamExt::map(completion, Ok);
-    // let stream = ReceiverStream::new(recv).map(Ok);
+        .start_completing_with(StandardSampler::default(), 1024);
+    let discard_tokens = [model.bos(), model.eos()];
+    let filter_tokens = StreamExt::filter(completion, move |_token| !discard_tokens.contains(_token));
+    let completion_strings = TokensToStrings::new(filter_tokens, model.clone());
+    let completion_stream = StreamExt::map(completion_strings,  Ok);
 
     Ok(Box::pin(completion_stream))
 }
