@@ -6,12 +6,16 @@ use serde::{Deserialize, Serialize};
 use crate::{
     arguments as args, 
     serde_io::DeserializeExt,
-    generators::openai::config::Config as ConfigOpenAI
+    generators::openai::config::Config as OpenAIConfig,
 };
+#[cfg(feature = "local-llm")]
+use crate::generators::llama::config::Config as LlamaConfig;
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub openai: ConfigOpenAI
+    pub openai: OpenAIConfig,
+    #[cfg(feature = "local-llm")]
+    pub llama: LlamaConfig,
 }
 
 impl DeserializeExt for Config {}

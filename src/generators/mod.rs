@@ -1,4 +1,6 @@
 pub mod openai;
+#[cfg(feature = "local-llm")]
+pub mod llama;
 pub mod from_file;
 
 use tokio_stream::Stream;
