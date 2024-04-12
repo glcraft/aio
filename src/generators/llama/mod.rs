@@ -2,9 +2,9 @@ pub mod config;
 use tokio::sync::Mutex;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
-use llama_cpp_rs::{
-    options::{ModelOptions, PredictOptions},
-    LLama,
+use llama_cpp::{
+    LlamaModel, LlamaSession, LlamaParams, SessionParams,
+    standard_sampler::StandardSampler
 };
 use once_cell::sync::{Lazy, OnceCell};
 use crate::{
@@ -13,26 +13,20 @@ use crate::{
 };
 use super::{ResultRun, Error};
 
-struct SendLLama(LLama);
-
-unsafe impl Send for SendLLama {}
-
-
-static LOCAL_LLAMA: OnceCell<Mutex<SendLLama>> = OnceCell::new();
+static LOCAL_LLAMA: OnceCell<LlamaModel> = OnceCell::new();
 
 fn init_model(config: &crate::config::Config) -> Result<(), Error> {
-    let model_options = ModelOptions {
+    let model_options = LlamaParams {
         n_gpu_layers: 20000,
         ..Default::default()
     };
-    let Ok(llama) = LLama::new(
-        config.llama.model_path.clone(),
-        &model_options,
+    let Ok(llama) = LlamaModel::load_from_file(
+        &config.llama.model_path,
+        model_options,
     ) else {
         return Err(Error::Custom("Failed to load LLaMA model".into()))
     };
-    let send_llama = SendLLama(llama);
-    LOCAL_LLAMA.set(Mutex::new(send_llama)).map_err(|_| Error::Custom("Failed to set LLaMA model".into()))
+    LOCAL_LLAMA.set(llama).map_err(|_| Error::Custom("Failed to set LLaMA model".into()))
 }
 
 pub async fn run(
@@ -42,45 +36,22 @@ pub async fn run(
     if LOCAL_LLAMA.get().is_none() {
         init_model(&config)?;
     }
-    let llama = LOCAL_LLAMA.get().unwrap().lock().await;
-    let llama = &llama.0;
+    let model = LOCAL_LLAMA.get().unwrap();
 
-    let (send, recv) = tokio::sync::mpsc::channel(10);
+    // let (send, recv) = tokio::sync::mpsc::channel(10);
+    let prompt = args.input;
+    let session_params = SessionParams::default();
+    let mut session = model.create_session(session_params).map_err(|_| Error::Custom("Failed to create session".into()))?;
 
-    let predict_options = PredictOptions {
-        token_callback: Some(Box::new(move |token| {
-            use tokio::runtime::Handle;
+    session
+        .advance_context_async(prompt).await
+        .map_err(|_| Error::Custom("Failed to advance context".into()))?;
 
-            // let send = send.clone();
-            // tokio::spawn(async move {
-            //     if let Err(e) = send.send(token).await {
-            //         eprintln!("Failed to send token: {}", e);
-            //     } else {
-            //         println!("token sent");
-            //     }
-            // });
-            print!("{}", token);
+    let completion = session
+        .start_completing_with(StandardSampler::default(), 1024)
+        .into_strings();
+    let completion_stream = StreamExt::map(completion, Ok);
+    // let stream = ReceiverStream::new(recv).map(Ok);
 
-            true
-        })),
-        tokens: 0,
-        threads: 14,
-        top_k: 90,
-        top_p: 0.8,
-        debug_mode: false,
-        ..Default::default()
-    };
-    llama
-        .predict(
-            args.input,
-             predict_options,
-        )
-        .unwrap();
-    
-    let stream = ReceiverStream::new(recv).map(Ok);
-
-    // send.send("test 1.2.3|".to_string()).await.expect("Failed to send");
-    // send.send("test 4.5.6|".to_string()).await.expect("Failed to send");
-    // send.send("test 7.8.9|".to_string()).await.expect("Failed to send");
-    Ok(Box::pin(stream))
+    Ok(Box::pin(completion_stream))
 }
