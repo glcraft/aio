@@ -31,6 +31,15 @@ impl std::fmt::Display for Role {
         }
     }
 }
+impl Role {
+    pub fn lowercase(&self) -> &str {
+        match self {
+            Role::User => "user",
+            Role::Assistant => "assistant",
+            Role::System => "system",
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
