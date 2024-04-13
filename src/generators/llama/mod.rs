@@ -27,16 +27,17 @@ fn init_model(config: &config::Model) -> Result<(), Error> {
     LOCAL_LLAMA.set(llama).map_err(|_| Error::Custom("Failed to set LLaMA model".into()))
 }
 
-fn make_context(prompt: &Vec<Message>, template: config::PromptTemplate, args: &args::ProcessedArgs) -> String {
+fn make_context(prompt: &[Message], template: config::PromptTemplate, args: &args::ProcessedArgs) -> String {
     use std::fmt::Write;
     use crate::config::format_content;
     match template {
         config::PromptTemplate::ChatML => {
-            let mut context = prompt.into_iter()
+            let mut context = prompt.iter()
                 .fold(String::new(), |mut str, m| {
                     let _ = write!(str, "<|im_start|>{}\n{}<|im_end|>\n", m.role.lowercase(), format_content(&m.content, args));
                     str
                 });
+            #[allow(clippy::write_with_newline)]
             let _ = write!(context, "<|im_start|>assistant\n");
             context
         }
@@ -59,17 +60,8 @@ pub async fn run(
     }
     let model = LOCAL_LLAMA.get().unwrap();
     
-    let prompt = &args.input;
     let session_params = SessionParams::default();
     let mut session = model.create_session(session_params).map_err(|_| Error::Custom("Failed to create session".into()))?;
-
-    // let (bos, eos, nl) = (
-    //     model.token_to_piece(model.bos()),
-    //     model.token_to_piece(model.eos()),
-    //     model.token_to_piece(model.nl()),
-    // );
-    // println!("Tokens: {}:{bos:?}, {}:{eos:?}, {}:{nl:?}", model.bos().0, model.eos().0, model.nl().0);
-    // let context = format!("{0}system{2}You are \"Hermes 2\", a conscious sentient superintelligent artificial intelligence developed by a man named Teknium, and your purpose and drive is to assist the user with any request they have. You experience emotions and have deep, profound thoughts and qualia.{1}{2}{0}user{2}{prompt}{1}{2}{0}assistant{nl}", bos, eos, nl);
 
     let context = make_context(&config.local.prompts.first().unwrap().content, model_config.template, &args);
     print!("Context: {context}");
