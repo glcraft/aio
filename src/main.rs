@@ -70,7 +70,7 @@ async fn main() -> Result<(), String> {
 
     let mut stream = match engine {
         "openai" => generators::openai::run(creds.openai, config, args).await,
-        "llama" => generators::llama::run(config, args).await,
+        "local" => generators::llama::run(config, args).await,
         "from-file" => generators::from_file::run(config, args).await,
         _ => panic!("Unknown engine: {}", engine),
     }

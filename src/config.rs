@@ -15,7 +15,7 @@ use crate::generators::llama::config::Config as LlamaConfig;
 pub struct Config {
     pub openai: OpenAIConfig,
     #[cfg(feature = "local-llm")]
-    pub llama: LlamaConfig,
+    pub local: LlamaConfig,
 }
 
 impl DeserializeExt for Config {}
