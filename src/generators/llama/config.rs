@@ -16,6 +16,7 @@ pub struct Model {
     pub template: PromptTemplate,
 }
 #[derive(Default, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum PromptTemplate {
     #[default]
     ChatML,
