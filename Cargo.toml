@@ -23,7 +23,7 @@ async-trait = "0.1"
 bytes = "1.1.0"
 clap = { version = "4.2.2", features = ["derive"] }
 crossterm = "0.27"
-llama_cpp = { version = "^0.3.1", features = ["cuda"], optional = true }
+llama_cpp = { version = "^0.3.1", optional = true }
 num-traits = "0.2"
 once_cell = "1.18"
 pin-project = "1.1"
