@@ -20,6 +20,8 @@ pub struct Model {
 pub enum PromptTemplate {
     #[default]
     ChatML,
+    Llama2,
+    Llama3,
 }
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Prompt {

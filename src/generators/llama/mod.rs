@@ -9,7 +9,7 @@ use crate::{
     config::Config as AIOConfig,
     args
 };
-use super::{openai::Message, Error, ResultRun};
+use super::{openai::{Message, Role}, Error, ResultRun};
 
 static LOCAL_LLAMA: OnceCell<LlamaModel> = OnceCell::new();
 
@@ -41,6 +41,32 @@ fn make_context(prompt: &[Message], template: config::PromptTemplate, args: &arg
             let _ = write!(context, "<|im_start|>assistant\n");
             context
         }
+        config::PromptTemplate::Llama2 => {
+            let context = prompt.iter()
+                .fold(String::new(), |mut str, m| {
+                    match m.role {
+                        Role::User => {
+                            #[allow(clippy::write_with_newline)]
+                            let _ = write!(str, "[INST] {} [/INST]\n", format_content(&m.content, args));
+                        }
+                        Role::Assistant => {
+                            #[allow(clippy::write_with_newline)]
+                            let _ = write!(str, "{}</s>\n", format_content(&m.content, args));
+                        }
+                        _ => ()
+                    }
+                    str
+                });
+            format!("<s>{}", context)
+        }
+        config::PromptTemplate::Llama3 => {
+            let context = prompt.iter()
+                .fold(String::new(), |mut str, m| {
+                    let _ = write!(str, "<|start_header_id|>{}<|end_header_id|>\n\n{}<|eot_id|>", m.role.lowercase(), format_content(&m.content, args));
+                    str
+                });
+            format!("<|begin_of_text|>{}<|start_header_id|>assistant<|end_header_id|>\n\n", context)
+        }
     }
 }
 
@@ -65,21 +91,23 @@ pub async fn run(
 
     let context = make_context(&config.local.prompts.first().unwrap().content, model_config.template, &args);
     print!("Context: {context}");
-    let context_tokens = model.tokenize_bytes(&context, true, true).unwrap();
+    let context_tokens = model.tokenize_bytes(&context, false, true).unwrap();
     println!("Tokens: ");
-    for token in context_tokens {
-        print!("{}({}) ", token.0, model.token_to_piece(token));
+    for token in &context_tokens {
+        print!("{}({}) ", model.token_to_piece(*token), token.0);
     }
-    println!();
+    let (bos, eos) = (model.bos(), model.eos());
+    println!("bos: {}({})", model.token_to_piece(bos), bos.0);
+    println!("eos: {}({})", model.token_to_piece(eos), eos.0);
     session
-        .advance_context_async(context).await
+        .advance_context_with_tokens_async(context_tokens).await
         .map_err(|_| Error::Custom("Failed to advance context".into()))?;
 
     let completion = session
         .start_completing_with(StandardSampler::default(), 1024);
     // let discard_tokens = [model.bos(), model.eos()];
     // let filter_tokens = StreamExt::filter(completion, move |_token| !discard_tokens.contains(_token));
-    let completion_stream = StreamExt::map(completion,  |token| Ok(format!("{}({}) ", token.0, model.token_to_piece(token))));
+    let completion_stream = StreamExt::map(completion,  |token| Ok(format!("{}({}) ", model.token_to_piece(token), token.0)));
     // let completion_strings = TokensToStrings::new(filter_tokens, model.clone());
     // let completion_stream = StreamExt::map(completion_strings, Ok);
 
