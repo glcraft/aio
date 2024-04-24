@@ -25,6 +25,15 @@ macro_rules! raise_str {
     }};
 }
 
+fn get_creds(engine: &str) -> Result<credentials::Credentials, String> {
+    Ok(raise_str!(
+        credentials::Credentials::from_yaml_file(
+            filesystem::resolve_path(&args.creds_path).as_ref()
+        ),
+        "Failed to parse credentials file: {}"
+    ))
+}
+
 #[tokio::main]
 async fn main() -> Result<(), String> {
     let args = {
@@ -49,12 +58,6 @@ async fn main() -> Result<(), String> {
                     e
                 )
             })?;
-    let creds = raise_str!(
-        credentials::Credentials::from_yaml_file(
-            filesystem::resolve_path(&args.creds_path).as_ref()
-        ),
-        "Failed to parse credentials file: {}"
-    );
 
     let mut formatter: Box<dyn Formatter> = match args.formatter {
         args::FormatterChoice::Markdown => Box::new(formatters::new_markdown_formatter()),
@@ -69,7 +72,7 @@ async fn main() -> Result<(), String> {
         .unwrap_or((args.engine.as_str(), None));
 
     let mut stream = match engine {
-        "openai" => generators::openai::run(creds.openai, config, args).await,
+        "openai" => generators::openai::run(get_creds(engine)?.openai, config, args).await,
         "local" => generators::llama::run(config, args).await,
         "from-file" => generators::from_file::run(config, args).await,
         _ => panic!("Unknown engine: {}", engine),
