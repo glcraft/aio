@@ -25,10 +25,10 @@ macro_rules! raise_str {
     }};
 }
 
-fn get_creds(engine: &str) -> Result<credentials::Credentials, String> {
+fn get_creds(creds_path: &str) -> Result<credentials::Credentials, String> {
     Ok(raise_str!(
         credentials::Credentials::from_yaml_file(
-            filesystem::resolve_path(&args.creds_path).as_ref()
+            filesystem::resolve_path(creds_path).as_ref()
         ),
         "Failed to parse credentials file: {}"
     ))
@@ -72,7 +72,7 @@ async fn main() -> Result<(), String> {
         .unwrap_or((args.engine.as_str(), None));
 
     let mut stream = match engine {
-        "openai" => generators::openai::run(get_creds(engine)?.openai, config, args).await,
+        "openai" => generators::openai::run(get_creds(&args.creds_path)?.openai, config, args).await,
         "local" => generators::llama::run(config, args).await,
         "from-file" => generators::from_file::run(config, args).await,
         _ => panic!("Unknown engine: {}", engine),
