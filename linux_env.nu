@@ -1,5 +1,5 @@
 export def get_flags [] {
-    let flags = do { "" | gcc -E -Wp,-v - } 
+    let flags = do { "" | `c++` -E -Wp,-v - } 
         | complete 
         | get stderr 
         | parse -r ' (/.*)'
