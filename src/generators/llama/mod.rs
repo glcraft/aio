@@ -1,5 +1,7 @@
 pub mod config;
 pub mod template;
+use std::borrow::Cow;
+
 use tokio_stream::StreamExt;
 
 use llama_cpp::{
@@ -8,8 +10,7 @@ use llama_cpp::{
 use once_cell::sync::OnceCell;
 use log::{debug, info};
 use crate::{
-    config::Config as AIOConfig,
-    args
+    args, config::{format_content, Config as AIOConfig}
 };
 use super::{openai::{Message, Role}, Error, ResultRun};
 
@@ -35,62 +36,6 @@ fn append_to_vec<T: Copy>(vec: &mut Vec<T>, other: &[T]) {
     }
 }
 
-fn make_context(model: &LlamaModel, prompt: &[Message], template: config::PromptTemplate, args: &args::ProcessedArgs) -> Vec<Token> {
-    use std::fmt::Write;
-    use crate::config::format_content;
-    let mut tokens = Vec::new();
-    tokens.push(model.bos());
-    // match template {
-    //     config::PromptTemplate::ChatML => {
-    //         let [im_start, im_end] = model.tokenize_bytes("<|im_start|><|im_end|>", false, true).unwrap()[..];
-    //         let [system, user, assistant] = model.tokenize_slice(&["user", "system", "assistant"], false, true).unwrap()[..];
-    //         let mut context = prompt.iter()
-    //             .for_each(|m| {
-    //                 tokens.push(im_start);
-    //                 append_to_vec(&mut tokens, &match m.role {
-    //                     Role::System => system,
-    //                     Role::User => user,
-    //                     Role::Assistant => assistant
-    //                 });
-    //                 tokens.push(model.nl());
-    //                 append_to_vec(&mut tokens, &model.tokenize_bytes(&m.content, false, false).unwrap());
-    //                 tokens.push(im_end);
-    //                 tokens.push(model.nl());
-    //             });
-    //         tokens.push(im_start);
-    //         append_to_vec(tokens, &assistant);
-    //         tokens.push(im_end);
-    //     }
-    //     config::PromptTemplate::Llama2 => {
-    //         let context = prompt.iter()
-    //             .fold(String::new(), |mut str, m| {
-    //                 match m.role {
-    //                     Role::User => {
-    //                         #[allow(clippy::write_with_newline)]
-    //                         let _ = write!(str, "[INST] {} [/INST]\n", format_content(&m.content, args));
-    //                     }
-    //                     Role::Assistant => {
-    //                         #[allow(clippy::write_with_newline)]
-    //                         let _ = write!(str, "{}</s>\n", format_content(&m.content, args));
-    //                     }
-    //                     _ => ()
-    //                 }
-    //                 str
-    //             });
-    //         format!("<s>{}", context)
-    //     }
-    //     config::PromptTemplate::Llama3 => {
-    //         let context = prompt.iter()
-    //             .fold(String::new(), |mut str, m| {
-    //                 let _ = write!(str, "<|start_header_id|>{}<|end_header_id|>\n\n{}<|eot_id|>", m.role.lowercase(), format_content(&m.content, args));
-    //                 str
-    //             });
-    //         format!("<|begin_of_text|>{}<|start_header_id|>assistant<|end_header_id|>\n\n", context)
-    //     }
-    // }
-    tokens
-}
-
 pub async fn run(
     config: AIOConfig, 
     args: args::ProcessedArgs
@@ -110,10 +55,12 @@ pub async fn run(
     let session_params = SessionParams::default();
     let mut session = model.create_session(session_params).map_err(|_| Error::Custom("Failed to create session".into()))?;
 
-    // let context = make_context(&config.local.prompts.first().unwrap().content, model_config.template, &args);
-    // debug!("Context: {context}");
-    let context = "";
-    let context_tokens = model.tokenize_bytes(&context, false, true).unwrap();
+    let prompt = config.local.prompts.first().unwrap();
+    let messages = prompt.content.iter()
+        .cloned()
+        .map(|mut m| {m.content = format_content(&m.content, &args).to_string(); m})
+        .collect::<Vec<_>>();
+    let context_tokens = model_config.template.messages_to_tokens(model, &messages).map_err(|_| Error::Custom("Failed to convert prompt messages to tokens".into()))?;
     debug!("Tokens: ");
     if log::log_enabled!(log::Level::Debug) {
         for token in &context_tokens {
@@ -131,11 +78,15 @@ pub async fn run(
 
     let completion = session
         .start_completing_with(StandardSampler::default(), 1024);
-    // let discard_tokens = [model.bos(), model.eos()];
-    // let filter_tokens = StreamExt::filter(completion, move |_token| !discard_tokens.contains(_token));
-    let completion_stream = StreamExt::map(completion,  |token| Ok(format!("{}({}) ", model.token_to_piece(token), token.0)));
-    // let completion_strings = TokensToStrings::new(filter_tokens, model.clone());
-    // let completion_stream = StreamExt::map(completion_strings, Ok);
-
+    // let completion_stream = StreamExt::map(completion,  |token| Ok(format!("{}({})", model.token_to_piece(token), token.0)));
+    let discard_tokens = model_config.template.stop_tokens(model).map_err(|_| Error::Custom("Failed to convert prompt messages to tokens".into()))?;
+    let completion_stream = 
+        StreamExt::map(
+            TokensToStrings::new(
+                StreamExt::take_while(completion, move |token| !discard_tokens.contains(token)), model.clone()
+            ), 
+            Ok
+        );
+    
     Ok(Box::pin(completion_stream))
 }
