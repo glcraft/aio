@@ -25,8 +25,6 @@ impl PromptTemplate {
         }
     }
     pub fn messages_to_tokens(&self, model: &llama_cpp::LlamaModel, prompt: &[Message]) -> Result<Vec<Token>, LlamaTokenizationError> {
-        use std::fmt::Write;
-        use crate::config::format_content;
         let mut tokens = Vec::new();
         tokens.push(model.bos());
         match self {
@@ -55,18 +53,23 @@ impl PromptTemplate {
         Ok(tokens)
     }
     pub fn tokens_chatml(tokens: &mut Vec<Token>, model: &llama_cpp::LlamaModel, prompt: &[Message]) -> Result<(), LlamaTokenizationError> {
-        let [im_start, im_end] = model.tokenize_bytes("<|im_start|><|im_end|>", false, true)?[..];
-        let [system, user, assistant] = model.tokenize_slice(&["user", "system", "assistant"], false, true)?[..];
+        let im_start = model.tokenize_bytes("<|im_start|>", false, true)?.first().copied().unwrap();
+        let im_end = model.tokenize_bytes("<|im_end|>", false, true)?.first().copied().unwrap();
+        let [system, user, assistant] = [
+            model.tokenize_bytes("system", false, true)?,
+            model.tokenize_bytes("user", false, true)?,
+            model.tokenize_bytes("assistant", false, true)?
+        ];
         prompt.iter()
             .for_each(|m| {
                 tokens.push(im_start);
-                append_to_vec(&mut tokens, &match m.role {
-                    Role::System => system,
-                    Role::User => user,
-                    Role::Assistant => assistant
+                append_to_vec(tokens, match m.role {
+                    Role::System => &system,
+                    Role::User => &user,
+                    Role::Assistant => &assistant
                 });
                 tokens.push(model.nl());
-                append_to_vec(&mut tokens, &model.tokenize_bytes(&m.content, false, false).unwrap());
+                append_to_vec(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap());
                 tokens.push(im_end);
                 tokens.push(model.nl());
             });
@@ -76,23 +79,30 @@ impl PromptTemplate {
         Ok(())
     }
     pub fn tokens_llama3(tokens: &mut Vec<Token>, model: &llama_cpp::LlamaModel, prompt: &[Message]) -> Result<(), LlamaTokenizationError> {
-        let [start_header_id, end_header_id, eot_id] = model.tokenize_bytes("<|start_header_id|><|end_header_id|><|eot_id|>", false, true)?[..];
-        let [system, user, assistant] = model.tokenize_slice(&["user", "system", "assistant"], false, true)?[..];
+        let start_header_id = model.tokenize_bytes("<|start_header_id|>", false, true)?.first().copied().unwrap();
+        let end_header_id = model.tokenize_bytes("<|end_header_id|>", false, true)?.first().copied().unwrap();
+        let eot_id = model.tokenize_bytes("<|eot_id|>", false, true)?.first().copied().unwrap();
+        let nl = model.tokenize_bytes("\n", false, true)?.first().copied().unwrap();
+        let [system, user, assistant] = [
+            model.tokenize_bytes("system", false, true)?,
+            model.tokenize_bytes("user", false, true)?,
+            model.tokenize_bytes("assistant", false, true)?
+        ];
         prompt.iter()
             .for_each(|m| {
                 tokens.push(start_header_id);
-                append_to_vec(&mut tokens, &match m.role {
-                    Role::System => system,
-                    Role::User => user,
-                    Role::Assistant => assistant
+                append_to_vec(tokens, match m.role {
+                    Role::System => &system,
+                    Role::User => &user,
+                    Role::Assistant => &assistant
                 });
-                append_to_vec(&mut tokens, &[end_header_id, model.nl(), model.nl()]);
-                append_to_vec(&mut tokens, &model.tokenize_bytes(&m.content, false, false).unwrap());
+                append_to_vec(tokens, &[end_header_id, nl, nl]);
+                append_to_vec(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap());
                 tokens.push(eot_id);
             });
         tokens.push(start_header_id);
         append_to_vec(tokens, &assistant);
-        append_to_vec(tokens, &[end_header_id, model.nl(), model.nl()]);
+        append_to_vec(tokens, &[end_header_id, nl, nl]);
         Ok(())
     }
 }
