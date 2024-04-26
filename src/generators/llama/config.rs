@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use llama_cpp::standard_sampler::StandardSampler;
 use crate::generators::openai::Message;
+use super::template::PromptTemplate;
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -15,14 +16,7 @@ pub struct Model {
     #[serde(default)]
     pub template: PromptTemplate,
 }
-#[derive(Default, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum PromptTemplate {
-    #[default]
-    ChatML,
-    Llama2,
-    Llama3,
-}
+
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Prompt {
     pub name: String,
