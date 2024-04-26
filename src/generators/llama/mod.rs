@@ -1,4 +1,5 @@
 pub mod config;
+pub mod template;
 use tokio_stream::StreamExt;
 
 use llama_cpp::{
@@ -26,48 +27,67 @@ fn init_model(config: &config::Model) -> Result<(), Error> {
     };
     LOCAL_LLAMA.set(llama).map_err(|_| Error::Custom("Failed to set LLaMA model".into()))
 }
+fn append_to_vec<T: Copy>(vec: &mut Vec<T>, other: &[T]) {
+    vec.reserve(other.len());
+    for v in other {
+        vec.push(*v);
+    }
+}
 
-fn make_context(prompt: &[Message], template: config::PromptTemplate, args: &args::ProcessedArgs) -> String {
+fn make_context(model: &LlamaModel, prompt: &[Message], template: config::PromptTemplate, args: &args::ProcessedArgs) -> Vec<Token> {
     use std::fmt::Write;
     use crate::config::format_content;
-    match template {
-        config::PromptTemplate::ChatML => {
-            let mut context = prompt.iter()
-                .fold(String::new(), |mut str, m| {
-                    let _ = write!(str, "<|im_start|>{}\n{}<|im_end|>\n", m.role.lowercase(), format_content(&m.content, args));
-                    str
-                });
-            #[allow(clippy::write_with_newline)]
-            let _ = write!(context, "<|im_start|>assistant\n");
-            context
-        }
-        config::PromptTemplate::Llama2 => {
-            let context = prompt.iter()
-                .fold(String::new(), |mut str, m| {
-                    match m.role {
-                        Role::User => {
-                            #[allow(clippy::write_with_newline)]
-                            let _ = write!(str, "[INST] {} [/INST]\n", format_content(&m.content, args));
-                        }
-                        Role::Assistant => {
-                            #[allow(clippy::write_with_newline)]
-                            let _ = write!(str, "{}</s>\n", format_content(&m.content, args));
-                        }
-                        _ => ()
-                    }
-                    str
-                });
-            format!("<s>{}", context)
-        }
-        config::PromptTemplate::Llama3 => {
-            let context = prompt.iter()
-                .fold(String::new(), |mut str, m| {
-                    let _ = write!(str, "<|start_header_id|>{}<|end_header_id|>\n\n{}<|eot_id|>", m.role.lowercase(), format_content(&m.content, args));
-                    str
-                });
-            format!("<|begin_of_text|>{}<|start_header_id|>assistant<|end_header_id|>\n\n", context)
-        }
-    }
+    let mut tokens = Vec::new();
+    tokens.push(model.bos());
+    // match template {
+    //     config::PromptTemplate::ChatML => {
+    //         let [im_start, im_end] = model.tokenize_bytes("<|im_start|><|im_end|>", false, true).unwrap()[..];
+    //         let [system, user, assistant] = model.tokenize_slice(&["user", "system", "assistant"], false, true).unwrap()[..];
+    //         let mut context = prompt.iter()
+    //             .for_each(|m| {
+    //                 tokens.push(im_start);
+    //                 append_to_vec(&mut tokens, &match m.role {
+    //                     Role::System => system,
+    //                     Role::User => user,
+    //                     Role::Assistant => assistant
+    //                 });
+    //                 tokens.push(model.nl());
+    //                 append_to_vec(&mut tokens, &model.tokenize_bytes(&m.content, false, false).unwrap());
+    //                 tokens.push(im_end);
+    //                 tokens.push(model.nl());
+    //             });
+    //         tokens.push(im_start);
+    //         append_to_vec(tokens, &assistant);
+    //         tokens.push(im_end);
+    //     }
+    //     config::PromptTemplate::Llama2 => {
+    //         let context = prompt.iter()
+    //             .fold(String::new(), |mut str, m| {
+    //                 match m.role {
+    //                     Role::User => {
+    //                         #[allow(clippy::write_with_newline)]
+    //                         let _ = write!(str, "[INST] {} [/INST]\n", format_content(&m.content, args));
+    //                     }
+    //                     Role::Assistant => {
+    //                         #[allow(clippy::write_with_newline)]
+    //                         let _ = write!(str, "{}</s>\n", format_content(&m.content, args));
+    //                     }
+    //                     _ => ()
+    //                 }
+    //                 str
+    //             });
+    //         format!("<s>{}", context)
+    //     }
+    //     config::PromptTemplate::Llama3 => {
+    //         let context = prompt.iter()
+    //             .fold(String::new(), |mut str, m| {
+    //                 let _ = write!(str, "<|start_header_id|>{}<|end_header_id|>\n\n{}<|eot_id|>", m.role.lowercase(), format_content(&m.content, args));
+    //                 str
+    //             });
+    //         format!("<|begin_of_text|>{}<|start_header_id|>assistant<|end_header_id|>\n\n", context)
+    //     }
+    // }
+    tokens
 }
 
 pub async fn run(
@@ -89,8 +109,9 @@ pub async fn run(
     let session_params = SessionParams::default();
     let mut session = model.create_session(session_params).map_err(|_| Error::Custom("Failed to create session".into()))?;
 
-    let context = make_context(&config.local.prompts.first().unwrap().content, model_config.template, &args);
-    print!("Context: {context}");
+    // let context = make_context(&config.local.prompts.first().unwrap().content, model_config.template, &args);
+    // print!("Context: {context}");
+    let context = "";
     let context_tokens = model.tokenize_bytes(&context, false, true).unwrap();
     println!("Tokens: ");
     for token in &context_tokens {
