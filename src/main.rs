@@ -10,6 +10,7 @@ mod serde_io;
 
 mod openai {}
 
+use simplelog::TermLogger;
 use arguments as args;
 use clap::Parser;
 use formatters::Formatter;
@@ -36,6 +37,15 @@ fn get_creds(creds_path: &str) -> Result<credentials::Credentials, String> {
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
+
+    simplelog::TermLogger::init(
+        simplelog::LevelFilter::Trace,
+        simplelog::Config::default(),
+        simplelog::TerminalMode::Stdout,
+        simplelog::ColorChoice::Auto,
+    )
+    .unwrap();
+
     let args = {
         let mut args = args::Args::parse();
         if args.input.is_none() {

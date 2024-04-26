@@ -6,6 +6,7 @@ use llama_cpp::{
     standard_sampler::StandardSampler, LlamaModel, LlamaParams, SessionParams, Token, TokensToStrings
 };
 use once_cell::sync::OnceCell;
+use log::{debug, info};
 use crate::{
     config::Config as AIOConfig,
     args
@@ -110,16 +111,20 @@ pub async fn run(
     let mut session = model.create_session(session_params).map_err(|_| Error::Custom("Failed to create session".into()))?;
 
     // let context = make_context(&config.local.prompts.first().unwrap().content, model_config.template, &args);
-    // print!("Context: {context}");
+    // debug!("Context: {context}");
     let context = "";
     let context_tokens = model.tokenize_bytes(&context, false, true).unwrap();
-    println!("Tokens: ");
-    for token in &context_tokens {
-        print!("{}({}) ", model.token_to_piece(*token), token.0);
+    debug!("Tokens: ");
+    if log::log_enabled!(log::Level::Debug) {
+        for token in &context_tokens {
+            print!("{}({})", model.decode_tokens([*token]), token.0);
+        }
+        println!();
     }
     let (bos, eos) = (model.bos(), model.eos());
-    println!("bos: {}({})", model.token_to_piece(bos), bos.0);
-    println!("eos: {}({})", model.token_to_piece(eos), eos.0);
+    debug!("Special tokens:");
+    debug!("bos: {}({})", model.decode_tokens([bos]), bos.0);
+    debug!("eos: {}({})", model.decode_tokens([eos]), eos.0);
     session
         .advance_context_with_tokens_async(context_tokens).await
         .map_err(|_| Error::Custom("Failed to advance context".into()))?;
