@@ -14,7 +14,7 @@ use self::config::Prompt;
 
 use super::{ResultRun, Error};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
     User,
@@ -41,7 +41,7 @@ impl Role {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub role: Role,
     pub content: String,
