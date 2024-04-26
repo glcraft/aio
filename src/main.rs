@@ -82,12 +82,14 @@ async fn main() -> Result<(), String> {
         .unwrap_or((args.engine.as_str(), None));
 
     let mut stream = match engine {
-        "openai" => generators::openai::run(get_creds(&args.creds_path)?.openai, config, args).await,
-        "local" => generators::llama::run(config, args).await,
-        "from-file" => generators::from_file::run(config, args).await,
+        "openai" => generators::openai::run(get_creds(&args.creds_path)?.openai, config, args).await
+            .map_err(|e| format!("Failed to request OpenAI API: {}", e))?,
+        "local" => generators::llama::run(config, args).await
+            .map_err(|e| format!("Unable to run local model: {}", e))?,
+        "from-file" => generators::from_file::run(config, args).await
+            .map_err(|e| format!("Failed to read from file: {}", e))?,
         _ => panic!("Unknown engine: {}", engine),
-    }
-    .map_err(|e| format!("Failed to request OpenAI API: {}", e))?;
+    };
 
     loop {
         match stream.next().await {
