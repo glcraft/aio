@@ -105,5 +105,18 @@ impl PromptTemplate {
         append_to_vec(tokens, &[end_header_id, nl, nl]);
         Ok(())
     }
+    pub fn stop_tokens(&self, model: &llama_cpp::LlamaModel) -> Result<Vec<Token>, LlamaTokenizationError> {
+        match self {
+            PromptTemplate::ChatML => {
+                let im_end = model.tokenize_bytes("<|im_end|>", false, true)?.first().copied().unwrap();
+                Ok(vec![im_end, model.eos()])
+            },
+            PromptTemplate::Llama2 => todo!(),
+            PromptTemplate::Llama3 => {
+                let eot_id = model.tokenize_bytes("<|eot_id|>", false, true)?.first().copied().unwrap();
+                Ok(vec![eot_id, model.eos()])
+            },
+        }
+    }
 }
 
