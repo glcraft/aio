@@ -55,8 +55,9 @@ impl PromptTemplate {
         Ok(tokens)
     }
     pub fn tokens_chatml(tokens: &mut Vec<Token>, model: &llama_cpp::LlamaModel, prompt: &[Message]) -> Result<(), LlamaTokenizationError> {
-        let im_start = model.tokenize_bytes("<|im_start|>", false, true)?.first().copied().unwrap();
-        let im_end = model.tokenize_bytes("<|im_end|>", false, true)?.first().copied().unwrap();
+        let im_start = model.tokenize_bytes("<|im_start|>", false, true)?;
+        let im_end = model.tokenize_bytes("<|im_end|>", false, true)?;
+        let nl = model.tokenize_bytes("\n", false, true)?;
         let [system, user, assistant] = [
             model.tokenize_bytes("system", false, true)?,
             model.tokenize_bytes("user", false, true)?,
@@ -64,20 +65,13 @@ impl PromptTemplate {
         ];
         prompt.iter()
             .for_each(|m| {
-                tokens.push(im_start);
-                append_to_vec(tokens, match m.role {
+                let role_tokens = match m.role {
                     Role::System => &system,
                     Role::User => &user,
                     Role::Assistant => &assistant
-                });
-                tokens.push(model.nl());
-                append_to_vec(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap());
-                tokens.push(im_end);
-                tokens.push(model.nl());
+                };
+                vec_merge!(tokens, &im_start, role_tokens, &nl, &model.tokenize_bytes(&m.content, false, false).unwrap(), &im_end, &nl);
             });
-        tokens.push(im_start);
-        append_to_vec(tokens, &assistant);
-        tokens.push(im_end);
         Ok(())
     }
     pub fn tokens_llama2(tokens: &mut Vec<Token>, model: &llama_cpp::LlamaModel, prompt: &[Message]) -> Result<(), LlamaTokenizationError> {
@@ -98,10 +92,10 @@ impl PromptTemplate {
         Ok(())
     }
     pub fn tokens_llama3(tokens: &mut Vec<Token>, model: &llama_cpp::LlamaModel, prompt: &[Message]) -> Result<(), LlamaTokenizationError> {
-        let start_header_id = model.tokenize_bytes("<|start_header_id|>", false, true)?.first().copied().unwrap();
-        let end_header_id = model.tokenize_bytes("<|end_header_id|>", false, true)?.first().copied().unwrap();
-        let eot_id = model.tokenize_bytes("<|eot_id|>", false, true)?.first().copied().unwrap();
-        let nl = model.tokenize_bytes("\n", false, true)?.first().copied().unwrap();
+        let start_header_id = model.tokenize_bytes("<|start_header_id|>", false, true)?;
+        let end_header_id = model.tokenize_bytes("<|end_header_id|>", false, true)?;
+        let eot_id = model.tokenize_bytes("<|eot_id|>", false, true)?;
+        let nl = model.tokenize_bytes("\n", false, true)?;
         let [system, user, assistant] = [
             model.tokenize_bytes("system", false, true)?,
             model.tokenize_bytes("user", false, true)?,
@@ -109,19 +103,13 @@ impl PromptTemplate {
         ];
         prompt.iter()
             .for_each(|m| {
-                tokens.push(start_header_id);
-                append_to_vec(tokens, match m.role {
+                let role_tokens = match m.role {
                     Role::System => &system,
                     Role::User => &user,
                     Role::Assistant => &assistant
-                });
-                append_to_vec(tokens, &[end_header_id, nl, nl]);
-                append_to_vec(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap());
-                tokens.push(eot_id);
+                };
+                vec_merge!(tokens, &start_header_id, role_tokens, &end_header_id, &nl, &nl, &model.tokenize_bytes(&m.content, false, false).unwrap(), &eot_id);
             });
-        tokens.push(start_header_id);
-        append_to_vec(tokens, &assistant);
-        append_to_vec(tokens, &[end_header_id, nl, nl]);
         Ok(())
     }
     pub fn tokens_custom(tokens: &mut Vec<Token>, model: &llama_cpp::LlamaModel, prompt: &[Message], custom_template: &CustomTemplate) -> Result<(), LlamaTokenizationError> {
