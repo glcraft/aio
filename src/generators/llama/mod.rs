@@ -7,7 +7,7 @@ use llama_cpp::{
     standard_sampler::StandardSampler, LlamaModel, LlamaParams, SessionParams, TokensToStrings
 };
 use once_cell::sync::OnceCell;
-use log::debug;
+use log::{debug, info};
 use crate::{
     args, config::{format_content, Config as AIOConfig}
 };
@@ -20,12 +20,14 @@ fn init_model(config: &config::Model) -> Result<(), Error> {
         n_gpu_layers: 20000,
         ..Default::default()
     };
+    info!("Loading LLaMA model at {}", config.path);
     let Ok(llama) = LlamaModel::load_from_file(
         &config.path,
         model_options,
     ) else {
         return Err(Error::Custom("Failed to load LLaMA model".into()))
     };
+    info!("LLaMA model loaded");
     LOCAL_LLAMA.set(llama).map_err(|_| Error::Custom("Failed to set LLaMA model".into()))
 }
 
