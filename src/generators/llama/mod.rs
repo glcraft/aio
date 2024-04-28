@@ -1,18 +1,17 @@
 pub mod config;
 pub mod template;
-use std::borrow::Cow;
 
 use tokio_stream::StreamExt;
 
 use llama_cpp::{
-    standard_sampler::StandardSampler, LlamaModel, LlamaParams, SessionParams, Token, TokensToStrings
+    standard_sampler::StandardSampler, LlamaModel, LlamaParams, SessionParams, TokensToStrings
 };
 use once_cell::sync::OnceCell;
-use log::{debug, info};
+use log::debug;
 use crate::{
     args, config::{format_content, Config as AIOConfig}
 };
-use super::{openai::{Message, Role}, Error, ResultRun};
+use super::{Error, ResultRun};
 
 static LOCAL_LLAMA: OnceCell<LlamaModel> = OnceCell::new();
 
@@ -28,12 +27,6 @@ fn init_model(config: &config::Model) -> Result<(), Error> {
         return Err(Error::Custom("Failed to load LLaMA model".into()))
     };
     LOCAL_LLAMA.set(llama).map_err(|_| Error::Custom("Failed to set LLaMA model".into()))
-}
-fn append_to_vec<T: Copy>(vec: &mut Vec<T>, other: &[T]) {
-    vec.reserve(other.len());
-    for v in other {
-        vec.push(*v);
-    }
 }
 
 pub async fn run(
@@ -58,20 +51,23 @@ pub async fn run(
     let prompt = config.local.prompts.first().unwrap();
     let messages = prompt.content.iter()
         .cloned()
-        .map(|mut m| {m.content = format_content(&m.content, &args).to_string(); m})
+        .map(|mut m| {
+            m.content = format_content(&m.content, &args).to_string(); 
+            m
+        })
         .collect::<Vec<_>>();
     let context_tokens = model_config.template.messages_to_tokens(model, &messages).map_err(|_| Error::Custom("Failed to convert prompt messages to tokens".into()))?;
-    debug!("Tokens: ");
     if log::log_enabled!(log::Level::Debug) {
+        debug!("Tokens: ");
         for token in &context_tokens {
-            print!("{}({})", model.decode_tokens([*token]), token.0);
+            print!("{}({})", String::from_utf8_lossy(model.detokenize(*token)), token.0);
         }
         println!();
+        let (bos, eos) = (model.bos(), model.eos());
+        debug!("Special tokens:");
+        debug!("bos: {}({})", String::from_utf8_lossy(model.detokenize(bos)), bos.0);
+        debug!("eos: {}({})", String::from_utf8_lossy(model.detokenize(eos)), eos.0);
     }
-    let (bos, eos) = (model.bos(), model.eos());
-    debug!("Special tokens:");
-    debug!("bos: {}({})", model.decode_tokens([bos]), bos.0);
-    debug!("eos: {}({})", model.decode_tokens([eos]), eos.0);
     session
         .advance_context_with_tokens_async(context_tokens).await
         .map_err(|_| Error::Custom("Failed to advance context".into()))?;

@@ -46,6 +46,8 @@ async fn main() -> Result<(), String> {
     )
     .unwrap();
 
+    
+
     let args = {
         let mut args = args::Args::parse();
         if args.input.is_none() {
