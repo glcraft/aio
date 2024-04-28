@@ -16,6 +16,14 @@ fn append_to_vec<T: Copy>(vec: &mut Vec<T>, other: &[T]) {
     other.iter().for_each(|v| vec.push(*v));
 }
 
+macro_rules! vec_merge {
+    ($tokens:ident, $($other_tokens:expr),*) => {{
+        let arrs = [$($other_tokens),*];
+        $tokens.reserve(arrs.iter().map(|arr| arr.len()).sum());
+        arrs.iter().map(|arr| arr.iter()).flatten().for_each(|v| $tokens.push(*v));
+    }};
+}
+
 impl PromptTemplate {
     pub fn name(&self) -> &str {
         match self {
@@ -29,25 +37,7 @@ impl PromptTemplate {
         tokens.push(model.bos());
         match self {
             Self::ChatML => Self::tokens_chatml(&mut tokens, model, prompt),
-            Self::Llama2 => {
-                todo!("not implemented")
-                // let context = prompt.iter()
-                //     .fold(String::new(), |mut str, m| {
-                //         match m.role {
-                //             Role::User => {
-                //                 #[allow(clippy::write_with_newline)]
-                //                 let _ = write!(str, "[INST] {} [/INST]\n", format_content(&m.content, args));
-                //             }
-                //             Role::Assistant => {
-                //                 #[allow(clippy::write_with_newline)]
-                //                 let _ = write!(str, "{}</s>\n", format_content(&m.content, args));
-                //             }
-                //             _ => ()
-                //         }
-                //         str
-                //     });
-                // format!("<s>{}", context)
-            }
+            Self::Llama2 => Self::tokens_llama2(&mut tokens, model, prompt),
             Self::Llama3 => Self::tokens_llama3(&mut tokens, model, prompt),
         }?;
         Ok(tokens)
@@ -76,6 +66,23 @@ impl PromptTemplate {
         tokens.push(im_start);
         append_to_vec(tokens, &assistant);
         tokens.push(im_end);
+        Ok(())
+    }
+    pub fn tokens_llama2(tokens: &mut Vec<Token>, model: &llama_cpp::LlamaModel, prompt: &[Message]) -> Result<(), LlamaTokenizationError> {
+        let system_start = model.tokenize_bytes("<<SYS>>", false, true)?;
+        let system_end = model.tokenize_bytes("<</SYS>>", false, true)?;
+        let inst_start = model.tokenize_bytes("[INST]", false, true)?;
+        let inst_end = model.tokenize_bytes("[/INST]", false, true)?;
+        let eos = model.tokenize_bytes("</s>", false, true)?;
+        let nl = model.tokenize_bytes("\n", false, true)?;
+        prompt.iter()
+            .for_each(|m| {
+                match m.role {
+                    Role::System => vec_merge!(tokens, &inst_start, &system_start, &model.tokenize_bytes(&m.content, false, false).unwrap(), &system_end, &inst_end, &nl),
+                    Role::User => vec_merge!(tokens, &inst_start, &model.tokenize_bytes(&m.content, false, false).unwrap(), &inst_end, &nl),
+                    Role::Assistant => vec_merge!(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap(), &eos, &nl),
+                }
+            });
         Ok(())
     }
     pub fn tokens_llama3(tokens: &mut Vec<Token>, model: &llama_cpp::LlamaModel, prompt: &[Message]) -> Result<(), LlamaTokenizationError> {
@@ -111,7 +118,10 @@ impl PromptTemplate {
                 let im_end = model.tokenize_bytes("<|im_end|>", false, true)?.first().copied().unwrap();
                 Ok(vec![im_end, model.eos()])
             },
-            PromptTemplate::Llama2 => todo!(),
+            PromptTemplate::Llama2 => {
+                let eot_id = model.tokenize_bytes("[INST]", false, true)?.first().copied().unwrap();
+                Ok(vec![eot_id, model.eos()])
+            },
             PromptTemplate::Llama3 => {
                 let eot_id = model.tokenize_bytes("<|eot_id|>", false, true)?.first().copied().unwrap();
                 Ok(vec![eot_id, model.eos()])
