@@ -14,7 +14,7 @@ use self::config::Prompt;
 
 use super::{ResultRun, Error};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
     User,
