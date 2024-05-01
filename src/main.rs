@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod tests;
 pub mod arguments;
 mod utils;
 mod config;
