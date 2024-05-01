@@ -103,19 +103,18 @@ impl<'a, 'b> StopTokenInspector<'a, 'b> {
         self.index = 0.into();
     }
     pub fn check(&mut self, text: &str) -> StopTokenState {
-        for (c_self, c_other) in self.stop.0.chars().skip(*self.index).zip(text.chars()) {
+        for c_other in text.chars() {
+            let c_self = self.stop.0.chars().nth(*self.index).unwrap();
             if c_self != c_other {
                 *self.index = 0;
-                return StopTokenState::NotFound;
+            } else {
+                *self.index += 1;
+                if *self.index == self.stop.0.len() {
+                    return StopTokenState::Found;
+                }
             }
         }
-        if self.stop.0.len() > *self.index + text.len() {
-            *self.index += text.len();
-            StopTokenState::InProgress
-        } else {
-            self.index = 0.into();
-            StopTokenState::Found
-        }
+        StopTokenState::InProgress
     }
 }
 
@@ -140,7 +139,10 @@ impl StopManager {
         for (stop, index) in &mut self.stops {
             let mut stop_inspector = StopTokenInspector { stop, index: index.into() };
             match stop_inspector.check(text) {
-                StopTokenState::Found => return true,
+                StopTokenState::Found => {
+                    self.reset();
+                    return true;
+                }
                 StopTokenState::InProgress | StopTokenState::NotFound => continue,
             }
         }
