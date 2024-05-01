@@ -132,20 +132,12 @@ impl PromptTemplate {
         Ok(())
     }
     pub fn stop_tokens(&self, model: &llama_cpp::LlamaModel) -> Result<StopManager, LlamaTokenizationError> {
+        let eos_str = String::from_utf8_lossy(model.detokenize(model.eos()));
         match self {
-            PromptTemplate::ChatML => {
-                let eos_str = model.decode_tokens([model.eos()]);
-                Ok(stop_manager!["<|im_end|>", eos_str])
-            },
-            PromptTemplate::Llama2 => {
-                let eos_str = model.decode_tokens([model.eos()]);
-                Ok(stop_manager!["[INST]", eos_str])
-            },
-            PromptTemplate::Llama3 => {
-                let eos_str = model.decode_tokens([model.eos()]);
-                Ok(stop_manager!["happy", "<|eot_id|>", eos_str])
-            },
-            PromptTemplate::Custom(custom_template) => Ok(stop_manager![&custom_template.user_prefix]),
+            PromptTemplate::ChatML => Ok(stop_manager!["<|im_end|>", eos_str]),
+            PromptTemplate::Llama2 => Ok(stop_manager!["[INST]", eos_str]),
+            PromptTemplate::Llama3 => Ok(stop_manager!["thank", "<|eot_id|>", eos_str]),
+            PromptTemplate::Custom(custom_template) => Ok(stop_manager![&custom_template.user_prefix, eos_str]),
         }
     }
 }
