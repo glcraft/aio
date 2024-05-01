@@ -87,7 +87,8 @@ impl PromptTemplate {
                 match m.role {
                     Role::System => vec_merge!(tokens, &inst_start, &system_start, &model.tokenize_bytes(&m.content, false, false).unwrap(), &system_end, &inst_end, &nl),
                     Role::User => vec_merge!(tokens, &inst_start, &model.tokenize_bytes(&m.content, false, false).unwrap(), &inst_end, &nl),
-                    Role::Assistant => vec_merge!(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap(), &eos, &nl),
+                    Role::Assistant if !m.content.is_empty() => vec_merge!(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap(), &eos, &nl),
+                    _ => (),
                 }
             });
         Ok(())
@@ -109,7 +110,10 @@ impl PromptTemplate {
                     Role::User => &user,
                     Role::Assistant => &assistant
                 };
-                vec_merge!(tokens, &start_header_id, role_tokens, &end_header_id, &nl, &nl, &model.tokenize_bytes(&m.content, false, false).unwrap(), &eot_id);
+                vec_merge!(tokens, &start_header_id, role_tokens, &end_header_id, &nl, &nl);
+                if !(m.role == Role::Assistant && m.content.is_empty()) {
+                    vec_merge!(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap(), &eot_id);
+                }
             });
         Ok(())
     }
@@ -126,7 +130,12 @@ impl PromptTemplate {
                 match m.role {
                     Role::System => vec_merge!(tokens, &system_prefix_tokens, &content_tokens, &system_suffix_tokens),
                     Role::User => vec_merge!(tokens, &user_prefix_tokens, &content_tokens, &user_suffix_tokens),
-                    Role::Assistant => vec_merge!(tokens, &assistant_prefix_tokens, &content_tokens, &assistant_suffix_tokens),
+                    Role::Assistant => {
+                        vec_merge!(tokens, &assistant_prefix_tokens);
+                        if !m.content.is_empty() {
+                            vec_merge!(tokens, &content_tokens, &assistant_suffix_tokens)
+                        }
+                    },
                 }
             });
         Ok(())
