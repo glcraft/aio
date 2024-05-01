@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use super::super::openai::{Message, Role};
 use llama_cpp::{LlamaTokenizationError, Token};
+use super::stop::{stop_manager, StopManager};
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct CustomTemplate {
@@ -130,21 +131,21 @@ impl PromptTemplate {
             });
         Ok(())
     }
-    pub fn stop_tokens(&self, model: &llama_cpp::LlamaModel) -> Result<Vec<Token>, LlamaTokenizationError> {
+    pub fn stop_tokens(&self, model: &llama_cpp::LlamaModel) -> Result<StopManager, LlamaTokenizationError> {
         match self {
             PromptTemplate::ChatML => {
-                let im_end = model.tokenize_bytes("<|im_end|>", false, true)?.first().copied().unwrap();
-                Ok(vec![im_end, model.eos()])
+                let eos_str = model.decode_tokens([model.eos()]);
+                Ok(stop_manager!["<|im_end|>", eos_str])
             },
             PromptTemplate::Llama2 => {
-                let eot_id = model.tokenize_bytes("[INST]", false, true)?.first().copied().unwrap();
-                Ok(vec![eot_id, model.eos()])
+                let eos_str = model.decode_tokens([model.eos()]);
+                Ok(stop_manager!["[INST]", eos_str])
             },
             PromptTemplate::Llama3 => {
-                let eot_id = model.tokenize_bytes("<|eot_id|>", false, true)?.first().copied().unwrap();
-                Ok(vec![eot_id, model.eos()])
+                let eos_str = model.decode_tokens([model.eos()]);
+                Ok(stop_manager!["happy", "<|eot_id|>", eos_str])
             },
-            PromptTemplate::Custom(custom_template) => Ok(vec![model.tokenize_bytes(&custom_template.user_prefix, false, true)?.first().copied().unwrap()]),
+            PromptTemplate::Custom(custom_template) => Ok(stop_manager![&custom_template.user_prefix]),
         }
     }
 }

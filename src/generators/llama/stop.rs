@@ -5,6 +5,15 @@ use llama_cpp::{
     Token
 };
 
+macro_rules! stop_manager {
+    ($($x:expr),*) => {{
+        let mut x = StopManager::new();
+        $(x.add_stop_from_string($x);)*
+        x
+    }};
+}
+pub(crate) use stop_manager;
+
 pub struct StopToken(String);
 
 impl StopToken {
