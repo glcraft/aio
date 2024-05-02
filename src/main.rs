@@ -52,7 +52,7 @@ async fn main() -> Result<(), String> {
 
     let args = {
         let mut args = args::Args::parse();
-        if args.input.is_none() {
+        if args.input.is_empty() {
             use std::io::Read;
             let mut str_input = std::string::String::new();
             let mut stdin = std::io::stdin();
@@ -60,9 +60,9 @@ async fn main() -> Result<(), String> {
                 .read_to_string(&mut str_input)
                 .map_err(|e| format!("Failed to read input from stdin: {}", e))?;
 
-            args.input = Some(str_input.trim().to_string());
+            args.input = str_input.trim().to_string();
         }
-        args::ProcessedArgs::from(args)
+        args
     };
     let config =
         config::Config::from_yaml_file(filesystem::resolve_path(&args.config_path).as_ref())
@@ -79,20 +79,13 @@ async fn main() -> Result<(), String> {
     };
     let mut runner = runner::Runner::new(args.run);
 
-    let (engine, _prompt) = args
-        .engine
-        .find(':')
-        .map(|i| (&args.engine[..i], Some(&args.engine[i + 1..])))
-        .unwrap_or((args.engine.as_str(), None));
-
-    let mut stream = match engine {
-        "openai" => generators::openai::run(get_creds(&args.creds_path)?.openai, config, args).await
+    let mut stream = match args.engine {
+        args::Subcommands::OpenAIAPI(args_engine) => generators::openai::run(get_creds(&args.creds_path)?.openai, config, args_engine, input).await
             .map_err(|e| format!("Failed to request OpenAI API: {}", e))?,
-        "local" => generators::llama::run(config, args).await
+        args::Subcommands::Local(args_engine) => generators::llama::run(config, args_engine, input).await
             .map_err(|e| format!("Unable to run local model: {}", e))?,
-        "from-file" => generators::from_file::run(config, args).await
-            .map_err(|e| format!("Failed to read from file: {}", e))?,
-        _ => panic!("Unknown engine: {}", engine),
+        args::Subcommands::FromFile(args_engine) => generators::from_file::run(config, args_engine, input).await
+            .map_err(|e| format!("Failed to read from file: {}", e))?
     };
 
     loop {

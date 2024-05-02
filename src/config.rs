@@ -20,7 +20,7 @@ pub struct Config {
 
 impl DeserializeExt for Config {}
 
-pub fn format_content<'a>(content: &'a str, args: &args::ProcessedArgs) -> Cow<'a, str> {
+pub fn format_content<'a>(content: &'a str, args: &args::Args) -> Cow<'a, str> {
     static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?P<prefix>\$\$?)(?P<name>\w+)").expect("Failed to compile regex"));
     RE.replace_all(content, |caps: &regex::Captures| {
         let prefix = &caps["prefix"];

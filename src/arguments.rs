@@ -1,4 +1,4 @@
-use clap::{Parser, ValueEnum};
+use clap::{Args as ClapArgs, Parser, Subcommand, ValueEnum};
 
 /// Program to communicate with large language models and AI API 
 #[derive(Parser, Debug)]
@@ -14,8 +14,8 @@ pub struct Args {
     /// 
     /// The name can be followed by custom prompt name from the configuration file
     /// (ex: openai:command)
-    #[arg(long, short)]
-    pub engine: String,
+    #[command(subcommand)]
+    pub engine: Subcommands,
     /// Formatter
     /// 
     /// Possible values: markdown, raw
@@ -26,7 +26,29 @@ pub struct Args {
     pub run: RunChoice,
     /// Force to run code 
     /// User text prompt
-    pub input: Option<String>,
+    #[arg(default_value_t = Default::default())]
+    pub input: String,
+}
+#[derive(Subcommand, Debug, Clone)]
+pub enum Subcommands {
+    OpenAIAPI(OpenAIAPIArgs),
+    FromFile(FromFileArgs),
+    Local(LocalArgs),
+}
+
+#[derive(ClapArgs, Debug, Clone)]
+pub struct OpenAIAPIArgs {
+    model: String,
+    prompt: String,
+}
+#[derive(ClapArgs, Debug, Clone)]
+pub struct FromFileArgs {
+    input: String,
+}
+#[derive(ClapArgs, Debug, Clone)]
+pub struct LocalArgs {
+    model: String,
+    prompt: String,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -49,26 +71,4 @@ pub enum RunChoice {
     Ask,
     /// Run code without asking
     Force
-}
-#[derive(Default, Debug, Clone)]
-pub struct ProcessedArgs {
-    pub config_path: String,
-    pub creds_path: String,
-    pub engine: String,
-    pub formatter: FormatterChoice,
-    pub run: RunChoice,
-    pub input: String,
-}
-
-impl From<Args> for ProcessedArgs {
-    fn from(args: Args) -> Self {
-        Self {
-            config_path: args.config_path,
-            creds_path: args.creds_path,
-            engine: args.engine,
-            formatter: args.formatter,
-            run: args.run,
-            input: args.input.unwrap_or_default(),
-        }
-    }
 }

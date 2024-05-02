@@ -49,7 +49,7 @@ pub struct Message {
 
 #[allow(dead_code)]
 impl Message {
-    pub fn format_content(mut self, args: &crate::args::ProcessedArgs) -> Self {
+    pub fn format_content(mut self, args: &str) -> Self {
         self.content = crate::config::format_content(&self.content, args).to_string();
         self
     }
@@ -211,7 +211,7 @@ impl ChatResponse {
     }
 }
 
-pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::ProcessedArgs) -> ResultRun {
+pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::OpenAIAPIArgs) -> ResultRun {
     let openai_api_key = creds.api_key;
 
     if openai_api_key.is_empty() {
