@@ -13,3 +13,18 @@ macro_rules! hashmap {
 }
 
 pub(crate) use hashmap;
+
+pub fn append_to_vec<T: Copy>(vec: &mut Vec<T>, other: &[T]) {
+    vec.reserve(other.len());
+    other.iter().for_each(|v| vec.push(*v));
+}
+
+macro_rules! vec_merge {
+    ($tokens:ident, $($other_tokens:expr),*) => {{
+        let arrs = [$($other_tokens),*];
+        $tokens.reserve(arrs.iter().map(|arr| arr.len()).sum());
+        arrs.iter().map(|arr| arr.iter()).flatten().for_each(|v| $tokens.push(*v));
+    }};
+}
+
+pub(crate) use vec_merge;

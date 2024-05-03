@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use super::super::openai::{Message, Role};
+use crate::{
+    generators::openai::{Message, Role},
+    utils::vec_merge
+};
 use llama_cpp::{LlamaTokenizationError, Token};
 use super::stop::{stop_manager, StopManager};
 
@@ -20,19 +23,6 @@ pub enum PromptTemplate {
     Llama2,
     Llama3,
     Custom(CustomTemplate)
-}
-
-fn append_to_vec<T: Copy>(vec: &mut Vec<T>, other: &[T]) {
-    vec.reserve(other.len());
-    other.iter().for_each(|v| vec.push(*v));
-}
-
-macro_rules! vec_merge {
-    ($tokens:ident, $($other_tokens:expr),*) => {{
-        let arrs = [$($other_tokens),*];
-        $tokens.reserve(arrs.iter().map(|arr| arr.len()).sum());
-        arrs.iter().map(|arr| arr.iter()).flatten().for_each(|v| $tokens.push(*v));
-    }};
 }
 
 impl PromptTemplate {
