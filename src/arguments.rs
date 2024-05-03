@@ -50,7 +50,7 @@ pub struct LocalArgs {
     #[arg(long, short)]
     pub model: String,
     #[arg(long, short)]
-    pub prompt: String,
+    pub prompt: Option<String>,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]

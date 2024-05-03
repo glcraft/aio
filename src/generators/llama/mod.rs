@@ -37,6 +37,23 @@ pub async fn run(
     args: args::LocalArgs,
     input: &str
 ) -> ResultRun {
+    let prompt = match args.prompt {
+        Some(prompt) => config.local.prompts
+            .iter()
+            .find(|v| v.name == prompt),
+        None => config.local.prompts
+            .iter()
+            .find(|v| v.name == "default")
+            .or_else(|| config.local.prompts.first())
+    }
+    .ok_or_else(|| Error::Custom("Prompt not found in config".into()))?;
+    let messages = prompt.content.iter()
+        .cloned()
+        .map(|mut m| {
+            m.content = format_content(&m.content, &hashmap!(input => input)).to_string(); 
+            m
+        })
+        .collect::<Vec<_>>();
     let model_config = config.local.models.into_iter()
         .find(|c| c.name == args.model)
         .ok_or_else(|| Error::Custom("Model not found in config".into()))?;
@@ -47,15 +64,7 @@ pub async fn run(
     
     let session_params = SessionParams::default();
     let mut session = model.create_session(session_params).map_err(|_| Error::Custom("Failed to create session".into()))?;
-
-    let prompt = config.local.prompts.first().unwrap();
-    let messages = prompt.content.iter()
-        .cloned()
-        .map(|mut m| {
-            m.content = format_content(&m.content, &hashmap!(input => input)).to_string(); 
-            m
-        })
-        .collect::<Vec<_>>();
+    
     let context_tokens = model_config.template.messages_to_tokens(model, &messages).map_err(|_| Error::Custom("Failed to convert prompt messages to tokens".into()))?;
     if log::log_enabled!(log::Level::Debug) {
         debug!("Tokens: ");
