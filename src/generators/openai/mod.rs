@@ -212,21 +212,20 @@ impl ChatResponse {
     }
 }
 
-pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::OpenAIAPIArgs) -> ResultRun {
+pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::OpenAIAPIArgs, input: &str) -> ResultRun {
     let openai_api_key = creds.api_key;
 
     if openai_api_key.is_empty() {
         return Err(Error::Custom("OpenAI API key not found".into()));
     }
-    let config_prompt = args.engine.find(':').map(|i| &args.engine[i+1..]);
 
-    let prompt = if let Some(config_prompt) = config_prompt {
+    let prompt = if let Some(config_prompt) = args.prompt {
         config.openai.prompts.into_iter()
             .find(|prompt| prompt.name == config_prompt)
             .ok_or(Error::Custom("Prompt not found".into()))?
             .format_contents(&hashmap!(input => input))
     } else {
-        Prompt::from_input(&args.input)
+        Prompt::from_input(&input)
     };
 
     // Send a request

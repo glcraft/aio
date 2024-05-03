@@ -34,14 +34,11 @@ fn init_model(config: &config::Model) -> Result<(), Error> {
 
 pub async fn run(
     config: AIOConfig, 
-    args: args::ProcessedArgs
+    args: args::LocalArgs,
+    input: &str
 ) -> ResultRun {
-    let model = args.engine
-        .split(':')
-        .nth(1)
-        .ok_or_else(|| Error::Custom("Model missing in engine parameter".into()))?;
     let model_config = config.local.models.into_iter()
-        .find(|c| c.name == model)
+        .find(|c| c.name == args.model)
         .ok_or_else(|| Error::Custom("Model not found in config".into()))?;
     if LOCAL_LLAMA.get().is_none() {
         init_model(&model_config)?;

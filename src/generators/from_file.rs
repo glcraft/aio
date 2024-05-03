@@ -1,9 +1,8 @@
 use crate::args;
 use super::{ResultRun, ResultStream, Error};
 
-pub async fn run(_: crate::config::Config, args: args::ProcessedArgs) -> ResultRun {
+pub async fn run(_: crate::config::Config, _args: args::FromFileArgs, input: &str) -> ResultRun {
     use tokio_stream::StreamExt;
-    let input = args.input;
     let file = tokio::fs::File::open(&input).await.map_err(|e| Error::Custom(std::borrow::Cow::Owned(e.to_string())))?;
 
     let stream = tokio_util::io::ReaderStream::new(file).map(|r| -> ResultStream {

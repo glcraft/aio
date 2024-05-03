@@ -80,11 +80,11 @@ async fn main() -> Result<(), String> {
     let mut runner = runner::Runner::new(args.run);
 
     let mut stream = match args.engine {
-        args::Subcommands::OpenAIAPI(args_engine) => generators::openai::run(get_creds(&args.creds_path)?.openai, config, args_engine, input).await
+        args::Subcommands::OpenAIAPI(args_engine) => generators::openai::run(get_creds(&args.creds_path)?.openai, config, args_engine, &args.input).await
             .map_err(|e| format!("Failed to request OpenAI API: {}", e))?,
-        args::Subcommands::Local(args_engine) => generators::llama::run(config, args_engine, input).await
+        args::Subcommands::Local(args_engine) => generators::llama::run(config, args_engine, &args.input).await
             .map_err(|e| format!("Unable to run local model: {}", e))?,
-        args::Subcommands::FromFile(args_engine) => generators::from_file::run(config, args_engine, input).await
+        args::Subcommands::FromFile(args_engine) => generators::from_file::run(config, args_engine, &args.input).await
             .map_err(|e| format!("Failed to read from file: {}", e))?
     };
 
