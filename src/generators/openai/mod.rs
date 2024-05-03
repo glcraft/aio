@@ -225,7 +225,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
             .ok_or(Error::Custom("Prompt not found".into()))?
             .format_contents(&hashmap!(input => input))
     } else {
-        Prompt::from_input(&input)
+        Prompt::from_input(input)
     };
 
     // Send a request
