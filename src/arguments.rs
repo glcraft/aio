@@ -38,17 +38,19 @@ pub enum Subcommands {
 
 #[derive(ClapArgs, Debug, Clone)]
 pub struct OpenAIAPIArgs {
-    model: String,
-    prompt: String,
+    #[arg(long, short)]
+    pub model: String,
+    #[arg(long, short)]
+    pub prompt: Option<String>,
 }
 #[derive(ClapArgs, Debug, Clone)]
-pub struct FromFileArgs {
-    input: String,
-}
+pub struct FromFileArgs;
 #[derive(ClapArgs, Debug, Clone)]
 pub struct LocalArgs {
-    model: String,
-    prompt: String,
+    #[arg(long, short)]
+    pub model: String,
+    #[arg(long, short)]
+    pub prompt: String,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
