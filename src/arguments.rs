@@ -5,10 +5,10 @@ use clap::{Args as ClapArgs, Parser, Subcommand, ValueEnum};
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     /// Configuration file
-    #[arg(long, default_value_t = format!("{1}{0}config.yml", std::path::MAIN_SEPARATOR, crate::filesystem::config_dir()))]
+    #[arg(long, global = true, default_value_t = format!("{1}{0}config.yml", std::path::MAIN_SEPARATOR, crate::filesystem::config_dir()))]
     pub config_path: String,
     /// Credentials file
-    #[arg(long, default_value_t = format!("{1}{0}creds.yml", std::path::MAIN_SEPARATOR, crate::filesystem::cache_dir()))]
+    #[arg(long, global = true, default_value_t = format!("{1}{0}creds.yml", std::path::MAIN_SEPARATOR, crate::filesystem::cache_dir()))]
     pub creds_path: String,
     /// Engine name
     /// 
@@ -19,14 +19,14 @@ pub struct Args {
     /// Formatter
     /// 
     /// Possible values: markdown, raw
-    #[arg(long, short, value_enum, default_value_t = Default::default())]
+    #[arg(long, short, global = true, value_enum, default_value_t = Default::default())]
     pub formatter: FormatterChoice,
     /// Run code block if the language is supported
-    #[arg(long, short, value_enum, default_value_t = Default::default())]
+    #[arg(long, short, global = true, value_enum, default_value_t = Default::default())]
     pub run: RunChoice,
     /// Force to run code 
     /// User text prompt
-    #[arg(default_value_t = Default::default())]
+    #[arg(global = true, default_value_t = Default::default())]
     pub input: String,
 }
 #[derive(Subcommand, Debug, Clone)]
