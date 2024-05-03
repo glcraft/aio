@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use super::ChatRequestParameters;
 use super::{Message, Role};
@@ -59,7 +61,7 @@ impl Prompt {
             ..Default::default()
         }
     }
-    pub fn format_contents(mut self, args: &crate::args::ProcessedArgs) -> Self {
+    pub fn format_contents(mut self, args: &HashMap<String, String>) -> Self {
         self.messages.iter_mut().map(|m| m.format_content_as_ref(args)).for_each(|_| ());
         self
     }

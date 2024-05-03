@@ -1,13 +1,14 @@
 pub mod config;
 pub mod credentials;
 
+use std::collections::HashMap;
+
 use serde::{Serialize, Deserialize};
 use tokio_stream::StreamExt;
 use crate::{
     args,
     utils::{
-        SplitBytesFactory,
-        FlattenTrait
+        hashmap, FlattenTrait, SplitBytesFactory
     }
 };
 use self::config::Prompt;
@@ -49,11 +50,11 @@ pub struct Message {
 
 #[allow(dead_code)]
 impl Message {
-    pub fn format_content(mut self, args: &str) -> Self {
+    pub fn format_content(mut self, args: &HashMap<String, String>) -> Self {
         self.content = crate::config::format_content(&self.content, args).to_string();
         self
     }
-    pub fn format_content_as_ref(&mut self, args: &crate::args::ProcessedArgs) -> &mut Self {
+    pub fn format_content_as_ref(&mut self, args: &HashMap<String, String>) -> &mut Self {
         self.content = crate::config::format_content(&self.content, args).to_string();
         self
     }
@@ -223,7 +224,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
         config.openai.prompts.into_iter()
             .find(|prompt| prompt.name == config_prompt)
             .ok_or(Error::Custom("Prompt not found".into()))?
-            .format_contents(&args)
+            .format_contents(&hashmap!(input => input))
     } else {
         Prompt::from_input(&args.input)
     };

@@ -10,7 +10,7 @@ use llama_cpp::{
 use once_cell::sync::OnceCell;
 use log::{debug, info};
 use crate::{
-    args, config::{format_content, Config as AIOConfig}
+    args, config::{format_content, Config as AIOConfig}, utils::hashmap
 };
 use super::{Error, ResultRun};
 
@@ -55,7 +55,7 @@ pub async fn run(
     let messages = prompt.content.iter()
         .cloned()
         .map(|mut m| {
-            m.content = format_content(&m.content, &args).to_string(); 
+            m.content = format_content(&m.content, &hashmap!(input => input)).to_string(); 
             m
         })
         .collect::<Vec<_>>();

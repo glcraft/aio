@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ pub struct Config {
 
 impl DeserializeExt for Config {}
 
-pub fn format_content<'a>(content: &'a str, args: &args::Args) -> Cow<'a, str> {
+pub fn format_content<'a>(content: &'a str, args: &HashMap<String, String>) -> Cow<'a, str> {
     static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?P<prefix>\$\$?)(?P<name>\w+)").expect("Failed to compile regex"));
     RE.replace_all(content, |caps: &regex::Captures| {
         let prefix = &caps["prefix"];
@@ -28,10 +28,7 @@ pub fn format_content<'a>(content: &'a str, args: &args::Args) -> Cow<'a, str> {
             return format!("${}", &caps["name"]);
         }
         let name = &caps["name"];
-        match name {
-            "input" => args.input.clone(),
-            _ => String::new(),
-        }
+        args.get(name).cloned().unwrap_or_default()
     })
 }
 
