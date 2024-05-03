@@ -145,7 +145,7 @@ impl PromptTemplate {
         match self {
             PromptTemplate::ChatML => Ok(stop_manager!["<|im_end|>", eos_str]),
             PromptTemplate::Llama2 => Ok(stop_manager!["[INST]", eos_str]),
-            PromptTemplate::Llama3 => Ok(stop_manager!["thank", "<|eot_id|>", eos_str]),
+            PromptTemplate::Llama3 => Ok(stop_manager!["<|eot_id|>", eos_str]),
             PromptTemplate::Custom(custom_template) => Ok(stop_manager![&custom_template.user_prefix, eos_str]),
         }
     }
