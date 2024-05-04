@@ -25,18 +25,17 @@ pub struct Prompt {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(default)]
 pub struct PromptParameters {
-    n_prev_tokens: i32,
-    top_k: i32,
-    top_p: f32,
-    temperature: f32,
-    repeat_penalty: f32,
-    repeat_last_n: i32,
-    max_tokens: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    negative_prompt: Option<String>,
+    pub n_prev_tokens: i32,
+    pub top_k: i32,
+    pub top_p: f32,
+    pub temperature: f32,
+    pub repeat_penalty: f32,
+    pub repeat_last_n: i32,
+    pub max_tokens: i32,
+    pub negative_prompt: Option<String>,
 }
+
 impl From<PromptParameters> for StandardSampler {
     fn from(parameters: PromptParameters) -> Self {
         Self {
