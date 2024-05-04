@@ -83,16 +83,20 @@ pub async fn run(
 
     let completion = session
         .start_completing_with(StandardSampler::default(), 1024);
-    // let completion_stream = StreamExt::map(completion,  |token| Ok(format!("{}({})", model.token_to_piece(token), token.0)));
-    let mut discard_tokens = model_config.template.stop_tokens(model).map_err(|_| Error::Custom("Failed to convert prompt messages to tokens".into()))?;
-    let completion_stream = 
-        StreamExt::map(
-            StreamExt::take_while(
-                TokensToStrings::new(completion, model.clone()), 
-                move |token| !discard_tokens.check(token)
-            ),
-            Ok
-        );
-    
-    Ok(Box::pin(completion_stream))
+    if log::log_enabled!(log::Level::Trace) {
+        let completion_stream = StreamExt::map(completion,  |token| Ok(format!("{}({})", model.token_to_piece(token), token.0)));
+        Ok(Box::pin(completion_stream))
+    } else {
+        let mut discard_tokens = model_config.template.stop_tokens(model).map_err(|_| Error::Custom("Failed to convert prompt messages to tokens".into()))?;
+        let completion_stream = 
+            StreamExt::map(
+                StreamExt::take_while(
+                    TokensToStrings::new(completion, model.clone()), 
+                    move |token| !discard_tokens.check(token)
+                ),
+                Ok
+            );
+        
+        Ok(Box::pin(completion_stream))
+    }
 }

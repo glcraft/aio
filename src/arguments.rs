@@ -10,6 +10,15 @@ pub struct Args {
     /// Credentials file
     #[arg(long, global = true, default_value_t = format!("{1}{0}creds.yml", std::path::MAIN_SEPARATOR, crate::filesystem::cache_dir()))]
     pub creds_path: String,
+    /// Verbose mode
+    /// 
+    /// Count: 
+    /// 0: errors
+    /// 1: warnings
+    /// 2: info
+    /// 3: debug
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub verbose: u8,
     /// Engine name
     /// 
     /// The name can be followed by custom prompt name from the configuration file
