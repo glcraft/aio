@@ -55,8 +55,8 @@ async fn main() -> Result<(), String> {
         0 => simplelog::LevelFilter::Error,
         1 => simplelog::LevelFilter::Warn,
         2 => simplelog::LevelFilter::Info,
-        _ if cfg!(debug_assertions) => simplelog::LevelFilter::Trace,
-        _ => simplelog::LevelFilter::Debug,
+        3 => simplelog::LevelFilter::Debug,
+        _ => simplelog::LevelFilter::Trace,
     };
 
     simplelog::TermLogger::init(
