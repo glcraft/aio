@@ -42,10 +42,10 @@ async fn main() -> Result<(), String> {
             use std::io::Read;
             let mut str_input = std::string::String::new();
             let mut stdin = std::io::stdin();
-            stdin
-                .read_to_string(&mut str_input)
-                .map_err(|e| format!("Failed to read input from stdin: {}", e))?;
-
+            raise_str!(
+                stdin.read_to_string(&mut str_input),
+                "Failed to read input from stdin: {}"
+            );
             args.input = str_input.trim().to_string();
         }
         args
