@@ -8,15 +8,18 @@ pub struct Args {
     #[arg(long, global = true, default_value_t = format!("{1}{0}config.yml", std::path::MAIN_SEPARATOR, crate::filesystem::config_dir()))]
     pub config_path: String,
     /// Credentials file
+    /// 
+    /// Used to store API keys
     #[arg(long, global = true, default_value_t = format!("{1}{0}creds.yml", std::path::MAIN_SEPARATOR, crate::filesystem::cache_dir()))]
     pub creds_path: String,
     /// Verbose mode
     /// 
     /// Count: 
-    /// 0: errors
-    /// 1: warnings
-    /// 2: info
-    /// 3: debug
+    /// 0: errors,
+    /// 1: warnings,
+    /// 2: info,
+    /// 3: debug,
+    /// 4: trace
     #[arg(short, long, action = clap::ArgAction::Count)]
     pub verbose: u8,
     /// Engine name
@@ -25,7 +28,7 @@ pub struct Args {
     /// (ex: openai:command)
     #[command(subcommand)]
     pub engine: Subcommands,
-    /// Formatter
+    /// Format the completion in the terminal
     /// 
     /// Possible values: markdown, raw
     #[arg(long, short, global = true, value_enum, default_value_t = Default::default())]
@@ -33,31 +36,55 @@ pub struct Args {
     /// Run code block if the language is supported
     #[arg(long, short, global = true, value_enum, default_value_t = Default::default())]
     pub run: RunChoice,
-    /// Force to run code 
     /// User text prompt
+    /// 
+    /// If the text is empty, it will be read from stdin
     #[arg(global = true, default_value_t = Default::default())]
     pub input: String,
 }
+
+/// aio subcommands
 #[derive(Subcommand, Debug, Clone)]
 pub enum Subcommands {
+    /// OpenAI API
     Api(ApiArgs),
+    /// Run local model
     FromFile(FromFileArgs),
+    /// Display the content of a file
     Local(LocalArgs),
 }
 
+/// OpenAI API arguments
 #[derive(ClapArgs, Debug, Clone)]
 pub struct ApiArgs {
+    /// Model name
+    /// 
+    /// The name of the model from /models API endpoint
     #[arg(long, short)]
     pub model: String,
+    /// Prompt name
+    /// 
+    /// The name of the prompt defined in the configuration file
     #[arg(long, short)]
     pub prompt: Option<String>,
 }
+/// FromFile arguments (not used)
 #[derive(ClapArgs, Debug, Clone)]
 pub struct FromFileArgs;
+
+/// Local model arguments
 #[derive(ClapArgs, Debug, Clone)]
 pub struct LocalArgs {
+    /// Model name
+    /// 
+    /// The name of the model defined in the configuration file
     #[arg(long, short)]
     pub model: String,
+    /// Prompt name
+    /// 
+    /// The name of the prompt defined in the configuration file.
+    /// If not provided, it will select the "default" prompt in the configuration file
+    /// or the first prompt in the configuration file if the "default" prompt is not defined
     #[arg(long, short)]
     pub prompt: Option<String>,
 }
