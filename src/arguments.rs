@@ -40,13 +40,13 @@ pub struct Args {
 }
 #[derive(Subcommand, Debug, Clone)]
 pub enum Subcommands {
-    OpenAIAPI(OpenAIAPIArgs),
+    Api(ApiArgs),
     FromFile(FromFileArgs),
     Local(LocalArgs),
 }
 
 #[derive(ClapArgs, Debug, Clone)]
-pub struct OpenAIAPIArgs {
+pub struct ApiArgs {
     #[arg(long, short)]
     pub model: String,
     #[arg(long, short)]

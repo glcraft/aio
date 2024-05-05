@@ -212,7 +212,7 @@ impl ChatResponse {
     }
 }
 
-pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::OpenAIAPIArgs, input: &str) -> ResultRun {
+pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::ApiArgs, input: &str) -> ResultRun {
     let openai_api_key = creds.api_key;
 
     if openai_api_key.is_empty() {

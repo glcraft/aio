@@ -83,7 +83,7 @@ async fn main() -> Result<(), String> {
     let mut runner = runner::Runner::new(app_args.run);
 
     let mut stream = match app_args.engine {
-        args::Subcommands::OpenAIAPI(args_engine) => generators::openai::run(
+        args::Subcommands::Api(args_engine) => generators::openai::run(
             get_creds(&app_args.creds_path)?.openai,
             config,
             args_engine,
