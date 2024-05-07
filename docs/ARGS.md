@@ -1,70 +1,88 @@
 # CLI Arguments Documentation
 
-## General Structure
-- **Program:** Communicate with large language models and AI APIs.
+## Usage
 
-## Arguments
-- **`--config-path`**: Path to the configuration file.
-  - **Default:** `{config_dir}/config.yml` (path depends on the system-defined location).
-- **`--creds-path`**: Path to the credentials file.
-  - **Default:** `{cache_dir}/creds.yml` (path depends on the system-defined location).
-- **`-v, --verbose`**: Verbose mode with different levels of logging.
-  - **Count:** 
-    - 0 : errors only.
-    - 1 : warnings.
-    - 2 : info.
-    - 3 : debug.
+`aio <COMMAND> [OPTIONS] [INPUT] `
 
-#### Subcommands
-- **`engine`**: Specifies the engine used, can be followed by a custom command name from the configuration file (e.g., `openai:command`).
+## Common arguments
+- **`--config-path <PATH>`**: Path to the configuration file.
+  
+  **Default:** `~/.config/config.yml`
+
+- **`--creds-path <PATH>`**: Path to the credentials file.
+  
+  **Default:** `~/.cache/creds.yml`
+
+- **`-v, --verbose...`**: Verbose mode with different levels of logging.
+  
+  **Count:** 
+    - 0: errors only.
+    - 1: warnings.
+    - 2: info.
+    - 3: debug.
+    - 4: trace
+  
+  **Default:** 0
+
+- **`-f, --formatter <CHOICE>`:** Format the completion in the terminal
+  
+  **Choice:**
+    - **`markdown`**: Markdown display
+    - **`raw`**: Raw display
+  
+  **Default:** markdown
+
+- **`-r, --run <CHOICE>`**: Run code block if the language is supported
+  
+  **Choice:**
+    - **`no`**: Doesn't run anything
+    - **`ask`**: Ask to run block of code
+    - **`force`**: Run code without asking
+  
+  **Default:** markdown
+
+## Subcommands and Arguments
+
+### 1. `aio api`
+
+Used to interact with the OpenAI API.
+
+- **Arguments**:
+  - **`--model`** (or `-m`): Specifies the model to use.
+  - **`--prompt`** (or `-p`): Optional. Provides an conversational prompt for the remote model. The model configuration is defined in the configuration file.
+
+#### Usage Examples
+
+For the **api** subcommand:
+```bash
+$ ./program_name api --model gpt-3.5-turbo --prompt ask
+```
+
+### 2. `aio from-file`
+
+Used to display a file's content like the AI completion does. It supports `--formatter` and `--run` arguments.
+
+### 3. `aio local`
+
+Used to operate locally with a specific model.
+
+**Arguments**:
+  - **`--model`** (or `-m`): Specifies the local model to use. The model configuration is defined in the configuration file.
+  - **`--prompt`** (or `-p`): Optional. Provides an conversational prompt for the local model. The prompt configuration is defined in the configuration file.
 
 ### Usage Examples
-```bash
-# Use with configuration and log levels
-$ ./program_name --config-path path/to/config.yml --creds-path path/to/creds.yml -vvv
 
-# Specify a subcommand with the engine
-$ ./program_name engine openai:command
+For the **api** subcommand:
+```bash
+$ ./program_name api --model gpt-3.5-turbo --prompt ask
 ```
 
-### Notes
-- The paths for the configuration and credentials files are computed based on the user's environment and can be customized.
-- Verbose mode allows controlling the level of log details displayed during the program's execution.
-
----
-
-### Subcommands and Arguments Documentation
-
-#### 1. **OpenAIAPI**
-   Used to interact with the OpenAI API.
-
-   - **Arguments**:
-     - **`--model`** (or `-m`): Specifies the model to use.
-     - **`--prompt`** (or `-p`): Optional. Provides an initial prompt for the model.
-
-#### 2. **FromFile**
-   This subcommand does not have specific arguments. It likely serves to load data from a file.
-
-#### 3. **Local**
-   Used to operate locally with a specific model.
-
-   - **Arguments**:
-     - **`--model`** (or `-m`): Specifies the local model to use.
-     - **`--prompt`** (or `-p`): Optional. Provides an initial prompt for the local model.
-
-### Usage Examples
-
-For the **OpenAIAPI** subcommand:
+For the **from-file** subcommand:
 ```bash
-$ ./program_name engine OpenAIAPI --model davinci --prompt "Hello"
+$ ./program_name api FromFile
 ```
 
-For the **FromFile** subcommand:
-```bash
-$ ./program_name engine FromFile
-```
-
-For the **Local** subcommand:
+For the **local** subcommand:
 ```bash
 $ ./program_name engine Local --model curie
 ```
@@ -72,3 +90,9 @@ $ ./program_name engine Local --model curie
 ### Notes
 - Each subcommand can be used for specific use cases, ensuring flexibility based on user needs.
 - Optional arguments like `--prompt` allow for advanced customization of requests.
+
+### Usage Examples
+```bash
+# Use with configuration and debug log levels
+$ ./aio --config-path path/to/config.yml --creds-path path/to/creds.yml -vvv ...
+```
