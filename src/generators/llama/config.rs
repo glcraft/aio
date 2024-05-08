@@ -25,6 +25,7 @@ pub struct Prompt {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(default)]
 pub struct PromptParameters {
     pub n_prev_tokens: i32,
     pub top_k: i32,
