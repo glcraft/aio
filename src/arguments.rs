@@ -49,7 +49,7 @@ pub enum Subcommands {
     /// OpenAI API
     Api(ApiArgs),
     /// Run local model
-    FromFile(FromFileArgs),
+    FromContent(FromContentArgs),
     /// Display the content of a file
     Local(LocalArgs),
 }
@@ -70,7 +70,11 @@ pub struct ApiArgs {
 }
 /// FromFile arguments (not used)
 #[derive(ClapArgs, Debug, Clone)]
-pub struct FromFileArgs;
+pub struct FromContentArgs {
+    /// Interpret input as file path instead of text
+    #[arg(long, short = 'p')]
+    pub file: bool
+}
 
 /// Local model arguments
 #[derive(ClapArgs, Debug, Clone)]

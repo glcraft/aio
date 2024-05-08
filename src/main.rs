@@ -96,7 +96,7 @@ async fn main() -> Result<(), String> {
                 .await
                 .map_err(|e| format!("Unable to run local model: {}", e))?
         }
-        args::Subcommands::FromFile(args_engine) => {
+        args::Subcommands::FromContent(args_engine) => {
             generators::from_file::run(config, args_engine, &app_args.input)
                 .await
                 .map_err(|e| format!("Failed to read from file: {}", e))?
