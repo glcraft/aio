@@ -5,6 +5,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Prompts(pub Vec<Prompt>);
 
+impl Prompts {
+    pub fn format_contents(mut self, args: &HashMap<String, String>) -> Self {
+        self.0.iter_mut().for_each(|v| { Prompt::format_contents_as_ref(v, args); });
+        self
+    }
+    pub fn format_contents_as_ref(&mut self, args: &HashMap<String, String>) -> &mut Self {
+        self.0.iter_mut().for_each(|v| { Prompt::format_contents_as_ref(v, args); });
+        self
+    }
+}
 impl Default for Prompts {
     fn default() -> Self {
         Prompts(vec![
@@ -77,8 +87,15 @@ impl Prompt {
         }
     }
     pub fn format_contents(mut self, args: &HashMap<String, String>) -> Self {
-        self.messages.iter_mut().map(|m| m.format_content_as_ref(args)).for_each(|_| ());
+        self.messages.iter_mut().for_each(|m|{ m.format_content_as_ref(args); });
         self
+    }
+    pub fn format_contents_as_ref(&mut self, args: &HashMap<String, String>) -> &mut Self {
+        self.messages.iter_mut().for_each(|m| { m.format_content_as_ref(args); });
+        self
+    }
+    pub fn formatted_messages(&self, args: &HashMap<String, String>) -> Vec<Message> {
+        self.messages.iter().cloned().map(|v| Message::format_content(v, args)).collect()
     }
 }
 

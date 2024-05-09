@@ -10,7 +10,7 @@ use llama_cpp::{
 use once_cell::sync::OnceCell;
 use log::{debug, info};
 use crate::{
-    args, config::{format_content, Config}, utils::hashmap
+    args, config::Config, utils::hashmap
 };
 use super::{Error, ResultRun};
 
@@ -47,13 +47,7 @@ pub async fn run(
             .or_else(|| config.prompts.0.first())
     }
     .ok_or_else(|| Error::Custom("Prompt not found in config".into()))?;
-    let messages = prompt.messages.iter()
-        .cloned()
-        .map(|mut m| {
-            m.content = format_content(&m.content, &hashmap!(input => input)).to_string(); 
-            m
-        })
-        .collect::<Vec<_>>();
+    let messages = prompt.formatted_messages(&hashmap!(input => input));
     let model_config = config.local.models.into_iter()
         .find(|c| c.name == args.model)
         .ok_or_else(|| Error::Custom("Model not found in config".into()))?;
