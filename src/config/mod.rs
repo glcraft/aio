@@ -1,19 +1,19 @@
+pub mod prompt;
+
+
 use std::{borrow::Cow, collections::HashMap};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    arguments as args, 
-    serde_io::DeserializeExt,
-    generators::openai::config::Config as OpenAIConfig,
-};
+use prompt::Prompts as PromptsConfig;
+use crate::serde_io::DeserializeExt;
 #[cfg(feature = "local-llm")]
 use crate::generators::llama::config::Config as LlamaConfig;
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub openai: OpenAIConfig,
+    pub prompts: PromptsConfig,
     #[cfg(feature = "local-llm")]
     pub local: LlamaConfig,
 }

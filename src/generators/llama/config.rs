@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
 use llama_cpp::standard_sampler::StandardSampler;
-use crate::generators::openai::Message;
+use crate::config::prompt::Message;
 use super::template::PromptTemplate;
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub models: Vec<Model>,
-    pub prompts: Vec<Prompt>,
 }
 
 #[derive(Default, Debug, Deserialize, Serialize)]

@@ -11,54 +11,10 @@ use crate::{
         hashmap, FlattenTrait, SplitBytesFactory
     }
 };
-use self::config::Prompt;
+use crate::config::prompt::{Prompt, Parameters as PromptParameters, Message, Role};
 
 use super::{ResultRun, Error};
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Role {
-    User,
-    Assistant,
-    System
-}
-
-impl std::fmt::Display for Role {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Role::User => write!(f, "User"),
-            Role::Assistant => write!(f, "Assistant"),
-            Role::System => write!(f, "System"),
-        }
-    }
-}
-impl Role {
-    pub fn lowercase(&self) -> &str {
-        match self {
-            Role::User => "user",
-            Role::Assistant => "assistant",
-            Role::System => "system",
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Message {
-    pub role: Role,
-    pub content: String,
-}
-
-#[allow(dead_code)]
-impl Message {
-    pub fn format_content(mut self, args: &HashMap<String, String>) -> Self {
-        self.content = crate::config::format_content(&self.content, args).to_string();
-        self
-    }
-    pub fn format_content_as_ref(&mut self, args: &HashMap<String, String>) -> &mut Self {
-        self.content = crate::config::format_content(&self.content, args).to_string();
-        self
-    }
-}
 #[derive(Debug, Default, Serialize)]
 pub struct ChatRequestParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -83,6 +39,22 @@ pub struct ChatRequestParameters {
     pub echo: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stop: Option<String>,
+}
+
+impl From<PromptParameters> for ChatRequestParameters {
+    fn from(parameters: PromptParameters) -> Self {
+        Self {
+            max_tokens: parameters.max_tokens,
+            temperature: parameters.temperature,
+            top_p: parameters.top_p,
+            presence_penalty: parameters.presence_penalty,
+            frequency_penalty: parameters.frequency_penalty,
+            best_of: parameters.best_of,
+            n: parameters.n,
+            stop: parameters.stop,
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -220,7 +192,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
     }
 
     let prompt = if let Some(config_prompt) = args.prompt {
-        config.openai.prompts.into_iter()
+        config.prompts.0.into_iter()
             .find(|prompt| prompt.name == config_prompt)
             .ok_or(Error::Custom("Prompt not found".into()))?
             .format_contents(&hashmap!(input => input))
@@ -229,7 +201,7 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
     };
 
     // Send a request
-    let chat_request = ChatRequest::new(prompt.model.unwrap_or_else(|| "gpt-3.5-turbo".into()))
+    let chat_request = ChatRequest::new(args.model)
         .add_messages(prompt.messages)
         .set_parameters(prompt.parameters.into())
         .into_stream();

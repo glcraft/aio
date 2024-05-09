@@ -60,7 +60,7 @@ pub struct ApiArgs {
     /// Model name
     /// 
     /// The name of the model from /models API endpoint
-    #[arg(long, short)]
+    #[arg(long, short, default_value = "gpt-3.5-turbo")]
     pub model: String,
     /// Prompt name
     /// 

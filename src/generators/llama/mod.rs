@@ -10,7 +10,7 @@ use llama_cpp::{
 use once_cell::sync::OnceCell;
 use log::{debug, info};
 use crate::{
-    args, config::{format_content, Config as AIOConfig}, utils::hashmap
+    args, config::{format_content, Config}, utils::hashmap
 };
 use super::{Error, ResultRun};
 
@@ -33,21 +33,21 @@ fn init_model(config: &config::Model) -> Result<(), Error> {
 }
 
 pub async fn run(
-    config: AIOConfig, 
+    config: Config, 
     args: args::LocalArgs,
     input: &str
 ) -> ResultRun {
     let prompt = match args.prompt {
-        Some(prompt) => config.local.prompts
+        Some(prompt) => config.prompts.0
             .iter()
             .find(|v| v.name == prompt),
-        None => config.local.prompts
+        None => config.prompts.0
             .iter()
             .find(|v| v.name == "default")
-            .or_else(|| config.local.prompts.first())
+            .or_else(|| config.prompts.0.first())
     }
     .ok_or_else(|| Error::Custom("Prompt not found in config".into()))?;
-    let messages = prompt.content.iter()
+    let messages = prompt.messages.iter()
         .cloned()
         .map(|mut m| {
             m.content = format_content(&m.content, &hashmap!(input => input)).to_string(); 
@@ -82,7 +82,7 @@ pub async fn run(
         .map_err(|_| Error::Custom("Failed to advance context".into()))?;
 
     let completion = session
-        .start_completing_with(StandardSampler::default(), prompt.parameters.max_tokens as _);
+        .start_completing_with(StandardSampler::default(), prompt.parameters.max_tokens.unwrap_or(1024) as _);
     if log::log_enabled!(log::Level::Trace) {
         let completion_stream = StreamExt::map(completion,  |token| Ok(format!("{}({})", model.token_to_piece(token), token.0)));
         Ok(Box::pin(completion_stream))

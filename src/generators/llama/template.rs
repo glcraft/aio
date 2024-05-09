@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::{
-    generators::openai::{Message, Role},
+    config::prompt::{Message, Role},
     utils::vec_merge
 };
 use llama_cpp::{LlamaTokenizationError, Token};
