@@ -13,11 +13,11 @@ impl Default for Prompts {
                     messages: vec![
                         Message {
                             role: Role::System,
-                            content: "In markdown, write the command that best fits my request in a \"Nu\" block in \"## Command\" then describe each parameter in \"## Explanation\".".to_string(),
+                            content: Some("In markdown, write the unix command that best fits my request in a block of code under a \"## Command\" then describe the program and each parameter in \"## Explanation\".".to_string()),
                         },
                         Message {
                             role: Role::User,
-                            content: "$input".to_string(),
+                            content: Some("$input".to_string()),
                         },
                     ],
                     parameters: Parameters {
@@ -36,11 +36,11 @@ impl Default for Prompts {
                     messages: vec![
                         Message {
                             role: Role::System,
-                            content: "You are ChatGPT, a powerful conversational chatbot. Answer to me in informative way unless I tell you otherwise. Format the text in markdown.".to_string(),
+                            content: Some("You are a powerful intelligent conversational chatbot. Unless I tell you otherwise, answer to me in an informative way. You should format the text in Markdown.".to_string()),
                         },
                         Message {
                             role: Role::User,
-                            content: "$input".to_string(),
+                            content: Some("$input".to_string()),
                         },
                     ],
                     parameters: Parameters {
@@ -71,7 +71,7 @@ impl Prompt {
             name: "noname".to_string(),
             messages: vec![Message {
                 role: Role::User,
-                content: input.into(),
+                content: Some(input.into()),
             }],
             ..Default::default()
         }
@@ -112,17 +112,17 @@ impl Role {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub role: Role,
-    pub content: String,
+    pub content: Option<String>,
 }
 
 #[allow(dead_code)]
 impl Message {
     pub fn format_content(mut self, args: &HashMap<String, String>) -> Self {
-        self.content = crate::config::format_content(&self.content, args).to_string();
+        self.content = self.content.map(|c| crate::config::format_content(&c, args).to_string());
         self
     }
     pub fn format_content_as_ref(&mut self, args: &HashMap<String, String>) -> &mut Self {
-        self.content = crate::config::format_content(&self.content, args).to_string();
+        self.content = self.content.as_mut().map(|c| crate::config::format_content(&c, args).to_string());
         self
     }
 }
