@@ -1,27 +1,44 @@
-openai:
-  prompts:
-    - name: command
-      messages: 
-        - role: system
-          content: In markdown, write the command that best fits my request in a "```nu" block in "## Command" then describe each parameter in "## Explanation".
-        - role: user
-          content: $input
-      parameters:
-        temperature: 0
-        top-p: 1.0 
-        frequency-penalty: 0.2
-        presence-penalty: 0 
-        max-tokens: 200
-    - name: ask
-      model: gpt-4
-      messages: 
-        - role: system
-          content: You are ChatGPT, a powerful conversational chatbot. Answer to me in informative way unless I tell you otherwise. Format the text in markdown.
-        - role: user
-          content: $input
-      parameters:
-        temperature: 0.7 
-        top-p: 1.0 
-        frequency-penalty: 0 
-        presence-penalty: 0 
-        max-tokens: 300
+prompts:
+  - name: ask
+    messages: 
+      - role: system
+        content: You are a powerful intelligent conversational chatbot. Unless I tell you otherwise, answer to me in an informative way. You should format the text in Markdown.
+      - role: user
+        content: $input
+      - role: assistant
+    parameters:
+      temperature: 0.7 
+      top-p: 1.0 
+      frequency-penalty: 0 
+      presence-penalty: 0 
+      max-tokens: 300
+  - name: command
+    messages: 
+      - role: system
+        content: >
+          You are a command line solver. Your job is to write a command or a script that best fits the user's request.
+          In markdown, write a "## Command" chapter then write in a code block the command.
+          The code block should have the correct language ID in the first line. For example, "```python" or "```zsh" if the user ask for python or zsh respectively. 
+          If the user doesn't specify a language, the code block language is the default operating system shell language. 
+          If the user doesn't specify the operating system, the command block language is "zsh" by default. 
+          Then describe each parameter and the command in "## Explanation" chapter. 
+      - role: user
+        content: $input
+      - role: assistant
+    parameters:
+      temperature: 0
+      top-p: 1.0 
+      frequency-penalty: 0.2
+      presence-penalty: 0 
+      max-tokens: 200
+local:
+  models:
+    - name: openhermes
+      path: '/home/user/.models/openhermes-2.5-mistral-7b.Q6_K.gguf'
+      template: chatml
+    - name: llama3
+      path: '/home/user/.models/Meta-Llama-3-8B-Instruct-Q5_K_M.gguf'
+      template: llama3
+    - name: lexi
+      path: '/home/user/.models/Lexi-Llama-3-8B-Uncensored_Q5_K_M.gguf'
+      template: llama3
