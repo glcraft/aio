@@ -28,7 +28,7 @@ impl Default for Prompts {
                         frequency_penalty: Some(0.2),
                         best_of: None,
                         n: None,
-                        stop: None,
+                        stop: Stop::None,
                     },
                 },
                 Prompt {
@@ -51,7 +51,7 @@ impl Default for Prompts {
                         frequency_penalty: Some(0.0),
                         best_of: None,
                         n: None,
-                        stop: None,
+                        stop: Stop::None,
                     },
                 },
             ])
@@ -144,9 +144,22 @@ pub struct Parameters {
     pub best_of: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub n: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stop: Option<String>,
+    #[serde(skip_serializing_if = "Stop::is_none")]
+    pub stop: Stop,
 }
 
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub enum Stop {
+    #[default]
+    None,
+    #[serde(untagged)]
+    One(String),
+    #[serde(untagged)]
+    Many(Vec<String>),
+}
 
-
+impl Stop {
+    pub fn is_none(&self) -> bool {
+        matches!(self, Stop::None)
+    }
+}
