@@ -1,13 +1,10 @@
 pub mod config;
 pub mod credentials;
 
-use std::collections::HashMap;
-
 use serde::{Serialize, Deserialize};
 use tokio_stream::StreamExt;
 use crate::{
-    args,
-    utils::{
+    args, config::prompt::Stop, utils::{
         hashmap, FlattenTrait, SplitBytesFactory
     }
 };
@@ -28,8 +25,6 @@ pub struct ChatRequestParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub best_of: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub n: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
@@ -37,8 +32,8 @@ pub struct ChatRequestParameters {
     pub logprobs: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub echo: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stop: Option<String>,
+    #[serde(skip_serializing_if = "Stop::is_none")]
+    pub stop: Stop,
 }
 
 impl From<PromptParameters> for ChatRequestParameters {
@@ -49,7 +44,6 @@ impl From<PromptParameters> for ChatRequestParameters {
             top_p: parameters.top_p,
             presence_penalty: parameters.presence_penalty,
             frequency_penalty: parameters.frequency_penalty,
-            best_of: parameters.best_of,
             n: parameters.n,
             stop: parameters.stop,
             ..Default::default()

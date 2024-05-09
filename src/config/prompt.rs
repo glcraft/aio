@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use llama_cpp::standard_sampler::StandardSampler;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -29,6 +30,10 @@ impl Default for Prompts {
                             role: Role::User,
                             content: Some("$input".to_string()),
                         },
+                        Message {
+                            role: Role::Assistant,
+                            content: None,
+                        },
                     ],
                     parameters: Parameters {
                         max_tokens: Some(200),
@@ -36,9 +41,7 @@ impl Default for Prompts {
                         top_p: Some(1.0),
                         presence_penalty: Some(0.0),
                         frequency_penalty: Some(0.2),
-                        best_of: None,
-                        n: None,
-                        stop: Stop::None,
+                        ..Default::default()
                     },
                 },
                 Prompt {
@@ -52,6 +55,10 @@ impl Default for Prompts {
                             role: Role::User,
                             content: Some("$input".to_string()),
                         },
+                        Message {
+                            role: Role::Assistant,
+                            content: None,
+                        },
                     ],
                     parameters: Parameters {
                         max_tokens: Some(300),
@@ -59,9 +66,7 @@ impl Default for Prompts {
                         top_p: Some(1.0),
                         presence_penalty: Some(0.0),
                         frequency_penalty: Some(0.0),
-                        best_of: None,
-                        n: None,
-                        stop: Stop::None,
+                        ..Default::default()
                     },
                 },
             ])
@@ -157,12 +162,32 @@ pub struct Parameters {
     pub presence_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub best_of: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub n: Option<u32>,
     #[serde(skip_serializing_if = "Stop::is_none")]
     pub stop: Stop,
+    
+    //OpenAI only
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub n: Option<u32>,
+
+    //Local only
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub n_prev_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub negative_prompt: Option<String>,
+}
+
+impl From<Parameters> for StandardSampler {
+    fn from(parameters: Parameters) -> Self {
+        let def = StandardSampler::default();
+        StandardSampler {
+            temp: parameters.temperature.unwrap_or(def.temp),
+            top_p: parameters.top_p.unwrap_or(def.top_p),
+            penalty_repeat: parameters.presence_penalty.unwrap_or(def.penalty_repeat),
+            penalty_freq: parameters.frequency_penalty.unwrap_or(def.penalty_freq),
+            n_prev: parameters.n_prev_tokens.unwrap_or(def.n_prev as _) as _,
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
