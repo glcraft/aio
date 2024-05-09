@@ -144,7 +144,7 @@ impl Message {
         self
     }
     pub fn format_content_as_ref(&mut self, args: &HashMap<String, String>) -> &mut Self {
-        self.content = self.content.as_mut().map(|c| crate::config::format_content(&c, args).to_string());
+        self.content = self.content.as_mut().map(|c| crate::config::format_content(c, args).to_string());
         self
     }
 }
@@ -163,6 +163,7 @@ pub struct Parameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Stop::is_none")]
+    #[serde(default)]
     pub stop: Stop,
     
     //OpenAI only

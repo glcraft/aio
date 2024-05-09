@@ -55,13 +55,17 @@ impl PromptTemplate {
             model.tokenize_bytes("assistant", false, true)?
         ];
         prompt.iter()
+            .filter(|m| !(matches!(m.role, Role::System | Role::User) && m.content.is_none()))
             .for_each(|m| {
                 let role_tokens = match m.role {
                     Role::System => &system,
                     Role::User => &user,
                     Role::Assistant => &assistant
                 };
-                vec_merge!(tokens, &im_start, role_tokens, &nl, &model.tokenize_bytes(&m.content, false, false).unwrap(), &im_end, &nl);
+                vec_merge!(tokens, &im_start, role_tokens, &nl);
+                if let Some(content) = m.content.as_ref() {
+                    vec_merge!(tokens, &model.tokenize_bytes(content, false, false).unwrap(), &im_end, &nl);
+                }
             });
         Ok(())
     }
@@ -74,11 +78,12 @@ impl PromptTemplate {
         let nl = model.tokenize_bytes("\n", false, true)?;
         prompt.iter()
             .for_each(|m| {
+                let Some(content) = m.content.as_ref() else { return; };
+                let content_tokens = model.tokenize_bytes(content, false, false).unwrap();
                 match m.role {
-                    Role::System => vec_merge!(tokens, &inst_start, &system_start, &model.tokenize_bytes(&m.content, false, false).unwrap(), &system_end, &inst_end, &nl),
-                    Role::User => vec_merge!(tokens, &inst_start, &model.tokenize_bytes(&m.content, false, false).unwrap(), &inst_end, &nl),
-                    Role::Assistant if !m.content.is_empty() => vec_merge!(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap(), &eos, &nl),
-                    _ => (),
+                    Role::System => vec_merge!(tokens, &inst_start, &system_start, &content_tokens, &system_end, &inst_end, &nl),
+                    Role::User => vec_merge!(tokens, &inst_start, &content_tokens, &inst_end, &nl),
+                    Role::Assistant => vec_merge!(tokens, &content_tokens, &eos, &nl),
                 }
             });
         Ok(())
@@ -94,6 +99,7 @@ impl PromptTemplate {
             model.tokenize_bytes("assistant", false, true)?
         ];
         prompt.iter()
+            .filter(|m| !(matches!(m.role, Role::System | Role::User) && m.content.is_none()))
             .for_each(|m| {
                 let role_tokens = match m.role {
                     Role::System => &system,
@@ -101,8 +107,8 @@ impl PromptTemplate {
                     Role::Assistant => &assistant
                 };
                 vec_merge!(tokens, &start_header_id, role_tokens, &end_header_id, &nl, &nl);
-                if !(m.role == Role::Assistant && m.content.is_empty()) {
-                    vec_merge!(tokens, &model.tokenize_bytes(&m.content, false, false).unwrap(), &eot_id);
+                if let Some(content) = &m.content {
+                    vec_merge!(tokens, &model.tokenize_bytes(content, false, false).unwrap_or_default(), &eot_id);
                 }
             });
         Ok(())
@@ -115,14 +121,21 @@ impl PromptTemplate {
         let assistant_prefix_tokens = model.tokenize_bytes(&custom_template.assistant_prefix, false, true)?;
         let assistant_suffix_tokens = model.tokenize_bytes(&custom_template.assistant_suffix, false, true)?;
         prompt.iter()
+            .filter(|m| !(matches!(m.role, Role::System | Role::User) && m.content.is_none()))
             .for_each(|m| {
-                let content_tokens = model.tokenize_bytes(&m.content, false, false).unwrap();
                 match m.role {
-                    Role::System => vec_merge!(tokens, &system_prefix_tokens, &content_tokens, &system_suffix_tokens),
-                    Role::User => vec_merge!(tokens, &user_prefix_tokens, &content_tokens, &user_suffix_tokens),
+                    Role::System => {
+                        let content_tokens = model.tokenize_bytes(m.content.as_ref().unwrap(), false, false).unwrap();
+                        vec_merge!(tokens, &system_prefix_tokens, &content_tokens, &system_suffix_tokens)
+                    }
+                    Role::User => {
+                        let content_tokens = model.tokenize_bytes(m.content.as_ref().unwrap(), false, false).unwrap();
+                        vec_merge!(tokens, &user_prefix_tokens, &content_tokens, &user_suffix_tokens)
+                    }
                     Role::Assistant => {
                         vec_merge!(tokens, &assistant_prefix_tokens);
-                        if !m.content.is_empty() {
+                        if let Some(content) = &m.content {
+                            let content_tokens = model.tokenize_bytes(content, false, false).unwrap_or_default();
                             vec_merge!(tokens, &content_tokens, &assistant_suffix_tokens)
                         }
                     },

@@ -67,11 +67,11 @@ impl ChatRequest {
         }
     }
     pub fn add_message(mut self, role: Role, content: String) -> Self {
-        self.messages.push(Message { role, content });
+        self.messages.push(Message { role, content: Some(content) });
         self
     }
     pub fn add_messages(mut self, messages: Vec<Message>) -> Self {
-        self.messages.extend(messages);
+        self.messages.extend(messages.into_iter().filter(|m| m.content.is_some()));
         self
     }
     pub fn set_parameters(mut self, parameters: ChatRequestParameters) -> Self {
