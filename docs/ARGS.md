@@ -16,7 +16,7 @@
 - **`-v, --verbose...`**: Verbose mode with different levels of logging.
   
   **Count:** 
-    - 0: errors only.
+    - 0 (default): errors only.
     - 1: warnings.
     - 2: info.
     - 3: debug.
@@ -27,72 +27,89 @@
 - **`-f, --formatter <CHOICE>`:** Format the completion in the terminal
   
   **Choice:**
-    - **`markdown`**: Markdown display
-    - **`raw`**: Raw display
+    - **`markdown`:** Markdown display
+    - **`raw`:** Raw display
   
   **Default:** markdown
 
 - **`-r, --run <CHOICE>`**: Run code block if the language is supported
   
   **Choice:**
-    - **`no`**: Doesn't run anything
-    - **`ask`**: Ask to run block of code
-    - **`force`**: Run code without asking
+    - **`no`:** Doesn't run anything
+    - **`ask`:** Ask to run block of code
+    - **`force`:** Run code without asking
   
   **Default:** markdown
 
-## Subcommands and Arguments
+### Global Usage Examples
+
+Set a custom path for configuration and creadentiale path
+```bash
+$ ./aio --config-path path/to/config.yml --creds-path path/to/creds.yml ...
+```
+
+Set log level to debug
+```bash
+$ ./aio -vvv ...
+```
+
+## Commands
 
 ### 1. `aio api`
 
-Used to interact with the OpenAI API.
+Generate text using the OpenAI API.
 
-- **Arguments**:
-  - **`--model`** (or `-m`): Specifies the model to use.
-  - **`--prompt`** (or `-p`): Optional. Provides an conversational prompt for the remote model. The model configuration is defined in the configuration file.
+**Arguments**:
+- **`--model`** (or `-m`): Specifies the model to use.
+- **`--prompt`** (or `-p`): Optional. Provides a conversational prompt for the remote model. The model configuration is defined in the configuration file.
 
 #### Usage Examples
 
-For the **api** subcommand:
+Generate text using GPT 3.5 Turbo model from OpenAI, with prompt "command" set in the configuration file:
 ```bash
-$ ./program_name api --model gpt-3.5-turbo --prompt ask
+$ ./program_name api --model gpt-3.5-turbo --prompt command "How to uncompress a tar.gz file ?"
 ```
 
-### 2. `aio from-file`
+Generate text with no formatting
+```bash
+$ ./program_name api --model gpt-3.5-turbo --prompt ask --formatter raw "What's the distance between the earth and the moon ?"
+```
 
-Used to display a file's content like the AI completion does. It supports `--formatter` and `--run` arguments.
+### 2. `aio from-content`
+
+Displays the input like the AI completion does. It supports `--formatter` and `--run` arguments. If `--file` flag is filled, the input is a file path and will be read as the content.
+
+**Arguments**:
+- **`--file`** (or `-p`): Interpret the input as a file path instead of content
+
+#### Usage Examples
+
+Displays the markdown "# Hello\nWorld" in the console
+```bash
+$ ./program_name from-content "# Hello\nWorld"
+```
+
+Displays the content of the README file in the console
+```bash
+$ ./program_name from-content --file "./README.md"
+```
+
+Displays the content of stdin
+```bash
+$ cat ./README.md | ./program_name from-content
+```
 
 ### 3. `aio local`
 
-Used to operate locally with a specific model.
+Generate text using local models.
 
 **Arguments**:
-  - **`--model`** (or `-m`): Specifies the local model to use. The model configuration is defined in the configuration file.
-  - **`--prompt`** (or `-p`): Optional. Provides an conversational prompt for the local model. The prompt configuration is defined in the configuration file.
+- **`--model`** (or `-m`): Specifies the local model to use. The model configuration is defined in the configuration file.
+- **`--prompt`** (or `-p`): Optional. Provides an conversational prompt for the local model. The prompt configuration is defined in the configuration file.
 
-### Usage Examples
+#### Usage Examples
 
-For the **api** subcommand:
+Generate text using "llama3" model, with prompt "command", both set in the configuration file:
 ```bash
-$ ./program_name api --model gpt-3.5-turbo --prompt ask
-```
-
-For the **from-file** subcommand:
-```bash
-$ ./program_name api FromFile
-```
-
-For the **local** subcommand:
-```bash
-$ ./program_name engine Local --model curie
-```
-
-### Notes
-- Each subcommand can be used for specific use cases, ensuring flexibility based on user needs.
-- Optional arguments like `--prompt` allow for advanced customization of requests.
-
-### Usage Examples
-```bash
-# Use with configuration and debug log levels
-$ ./aio --config-path path/to/config.yml --creds-path path/to/creds.yml -vvv ...
+$ ./program_name local --model llama3 --prompt command "How to uncompress a tar.gz file ?"
 ```
