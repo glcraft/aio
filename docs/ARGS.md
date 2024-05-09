@@ -43,7 +43,7 @@
 
 ### Global Usage Examples
 
-Set a custom path for configuration and creadentiale path
+Set a custom path for configuration and credentials path
 ```bash
 $ ./aio --config-path path/to/config.yml --creds-path path/to/creds.yml ...
 ```
@@ -60,8 +60,11 @@ $ ./aio -vvv ...
 Generate text using the OpenAI API.
 
 **Arguments**:
-- **`--model`** (or `-m`): Specifies the model to use.
-- **`--prompt`** (or `-p`): Optional. Provides a conversational prompt for the remote model. The model configuration is defined in the configuration file.
+- **`--model`** (or `-m`): The model name to use. The name must exist in the service. 
+  Call `/models` GET API to get the list of all models provided by the service.
+- **`--prompt`** (or `-p`): Optional. Provides a conversational prompt for the remote model. 
+  The prompt configuration is defined in the configuration file. If this argument is not defined,
+  a prompt with a user message containing the input will be generated.
 
 #### Usage Examples
 
@@ -105,7 +108,9 @@ Generate text using local models.
 
 **Arguments**:
 - **`--model`** (or `-m`): Specifies the local model to use. The model configuration is defined in the configuration file.
-- **`--prompt`** (or `-p`): Optional. Provides an conversational prompt for the local model. The prompt configuration is defined in the configuration file.
+- **`--prompt`** (or `-p`): Optional. Provides a conversational prompt for the local model. 
+  The prompt configuration is defined in the configuration file. If this argument is not defined,
+  a prompt with a user message containing the input will be generated.
 
 #### Usage Examples
 
