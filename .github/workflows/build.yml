@@ -19,6 +19,9 @@ jobs:
         arch:
           - x86_64
           - aarch64
+        exclude:
+          - system: apple-darwin
+            arch: x86_64
         include:
           - system: pc-windows-msvc
             os: windows-latest
@@ -44,6 +47,10 @@ jobs:
           target: ${{ matrix.arch }}-${{ matrix.system }}
           profile: minimal
           override: true
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "17.0"
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.arch }}-${{ matrix.system }}
