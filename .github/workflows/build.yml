@@ -34,6 +34,8 @@ jobs:
         include: 
           - system: apple-darwin
             os: macos-latest
+          - system: apple-darwin
+            os: macos-latest
             gpu: metal
           - system: unknown-linux-gnu
             os: ubuntu-latest
