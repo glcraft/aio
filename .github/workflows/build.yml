@@ -11,31 +11,38 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        system: 
+        system:
           - unknown-linux-gnu
           - unknown-linux-musl
-          - apple-darwin
           - pc-windows-msvc
+          - apple-darwin
         arch:
           - x86_64
           - aarch64
+        gpu:
+          - null
+          - clblast
+          - cuda
+          - vulkan
         exclude:
           - system: apple-darwin
             arch: x86_64
-        include:
+          - system: apple-darwin
+            gpu: cuda
+          - gpu: cuda
+            arch: aarch64
+        include: 
+          - system: apple-darwin
+            os: macos-latest
+            gpu: metal
+          - system: unknown-linux-gnu
+            os: ubuntu-latest
+          - system: unknown-linux-musl
+            os: ubuntu-latest
+            toolchain: nightly
           - system: pc-windows-msvc
             os: windows-latest
             ext: .exe
-          - system: apple-darwin
-            os: macos-latest
-            ext:
-          - system: unknown-linux-gnu
-            os: ubuntu-latest
-            ext:
-          - system: unknown-linux-musl
-            os: ubuntu-latest
-            ext:
-            toolchain: nightly
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -47,11 +54,17 @@ jobs:
           target: ${{ matrix.arch }}-${{ matrix.system }}
           profile: minimal
           override: true
+      - name: Install CUDA
+        if: matrix.gpu == 'cuda'
+        uses: Jimver/cuda-toolkit@v0.2.15
+        with:
+          linux-local-args: '["--toolkit"]'
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "17.0"
-      - uses: Swatinem/rust-cache@v2
+      - name: Restore cache
+        uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.arch }}-${{ matrix.system }}
       - name: Setup ssl for linux via apt
@@ -73,7 +86,7 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain || 'stable' }}
           command: build
-          args: --release --target "${{ matrix.arch }}-${{ matrix.system }}"
+          args: --release ${{ matrix.gpu && format('--features=llama_cpp/{0}', matrix.gpu) || '' }} --target "${{ matrix.arch }}-${{ matrix.system }}"
           use-cross: false
       - name: Rename Build
         run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/aio${{ matrix.ext }} target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.ext }}
