@@ -89,12 +89,12 @@ jobs:
           args: --release ${{ matrix.gpu && format('--features=llama_cpp/{0}', matrix.gpu) || '' }} --target "${{ matrix.arch }}-${{ matrix.system }}"
           use-cross: false
       - name: Rename Build
-        run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/aio${{ matrix.ext }} target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.ext }}
+        run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/aio${{ matrix.ext }} target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.gpu && format('-{0}', matrix.gpu) || '' }}${{ matrix.ext }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
           name: aio-${{ matrix.arch }}-${{ matrix.system }}
-          path: target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.ext }}
+          path: target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.gpu && format('-{0}', matrix.gpu) || '' }}${{ matrix.ext }}
 
   release:
     needs: build
