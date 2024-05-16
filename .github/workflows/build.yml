@@ -71,7 +71,7 @@ jobs:
           key: ${{ matrix.arch }}-${{ matrix.system }}
       - name: Setup ssl for linux via apt
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt install libssl-dev pkg-config
+        run: apt update && apt upgrade -y && apt install -y libssl-dev pkg-config
       - name: Install gcc environnement for musl
         if: matrix.system == 'unknown-linux-musl'
         run:
@@ -80,7 +80,7 @@ jobs:
           echo "PATH=$PWD/${{ matrix.arch }}-linux-musl-cross/bin:$PATH" >> $GITHUB_ENV;
       - name: Install gcc environnement for aarch64 gnu
         if: matrix.system == 'unknown-linux-gnu' && matrix.arch == 'aarch64'
-        run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+        run: apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Build
         uses: actions-rs/cargo@v1
         env:
