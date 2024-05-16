@@ -85,6 +85,11 @@ jobs:
         uses: actions-rs/cargo@v1
         env:
           CC_x86_64-unknown-linux-musl: x86_64-linux-musl-gcc
+          CXX_x86_64-unknown-linux-musl: x86_64-linux-musl-g++
+          CC_aarch64-unknown-linux-gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64-unknown-linux-gnu: aarch64-linux-gnu-g++
+          CFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
+          CXXFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
         with:
           toolchain: ${{ matrix.toolchain || 'stable' }}
           command: build
