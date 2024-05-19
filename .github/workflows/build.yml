@@ -60,7 +60,11 @@ jobs:
         if: matrix.gpu == 'cuda'
         uses: Jimver/cuda-toolkit@v0.2.15
         with:
-          linux-local-args: '["--toolkit"]'
+          method: 'network'
+          sub-packages: '["nvcc"]'
+          non-cuda-sub-packages: '["libcublas", "libcublas-dev"]'
+          use-local-cache: false
+          use-github-cache: false
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
         with:
