@@ -44,7 +44,7 @@ tokio-util = {version = "0.7", features = ["io"]}
 aio-cargo-info = { path = "./crates/aio-cargo-info", version = "0.1" }
 
 [dependencies.llama_cpp]
-version = "^0.3.1"
+version = "^0.3.2"
 default-features = false
 features = ["compat"]
 optional = true
