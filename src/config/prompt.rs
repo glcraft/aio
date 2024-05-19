@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use llama_cpp::standard_sampler::StandardSampler;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -148,6 +147,34 @@ impl Message {
         self
     }
 }
+#[cfg(feature = "local-llm")]
+#[derive(Debug, Deserialize, Serialize)]
+pub enum Algorithm {
+    SoftMax{
+        min_keep: usize,
+    },
+    Greedy,
+    Mirostat{
+        min_keep: usize,
+        tau: f32,
+        eta: f32,
+        m: i32
+    },
+    MirostatV2{
+        min_keep: usize,
+        tau: f32,
+        eta: f32,
+    },
+}
+impl Default for Algorithm {
+    fn default() -> Self {
+        Algorithm::MirostatV2 { 
+            min_keep: 50, 
+            tau: 5.0, 
+            eta: 0.1,
+        }
+    }
+}
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -171,22 +198,62 @@ pub struct Parameters {
     pub n: Option<u32>,
 
     //Local only
+    #[cfg(feature = "local-llm")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub n_prev_tokens: Option<u32>,
+    pub last_n: Option<i32>,
+    #[cfg(feature = "local-llm")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub negative_prompt: Option<String>,
+    pub top_k: Option<i32>,
+    #[cfg(feature = "local-llm")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tail_free: Option<f32>,
+    #[cfg(feature = "local-llm")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub typical: Option<f32>,
+    #[cfg(feature = "local-llm")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_p: Option<f32>,
+    #[cfg(feature = "local-llm")]
+    #[serde(default)]
+    pub algorithm: Algorithm,
 }
 
-impl From<Parameters> for StandardSampler {
+#[cfg(feature = "local-llm")]
+impl From<Parameters> for llama_cpp::standard_sampler::StandardSampler {
     fn from(parameters: Parameters) -> Self {
-        let def = StandardSampler::default();
-        StandardSampler {
-            temp: parameters.temperature.unwrap_or(def.temp),
-            top_p: parameters.top_p.unwrap_or(def.top_p),
-            penalty_repeat: parameters.presence_penalty.unwrap_or(def.penalty_repeat),
-            penalty_freq: parameters.frequency_penalty.unwrap_or(def.penalty_freq),
-            n_prev: parameters.n_prev_tokens.unwrap_or(def.n_prev as _) as _,
-            ..Default::default()
+        use llama_cpp::standard_sampler::SamplerStage;
+        let mut stages = vec![];
+        if let Some(last_n) = parameters.last_n {
+            stages.push(SamplerStage::RepetitionPenalty{
+                repetition_penalty: parameters.frequency_penalty.unwrap_or(1.0),
+                frequency_penalty: parameters.frequency_penalty.unwrap_or(0.0),
+                presence_penalty: parameters.presence_penalty.unwrap_or(0.0),
+                last_n,
+            });
+        }
+        if let Some(temp) = parameters.temperature {
+            stages.push(SamplerStage::Temperature(temp));
+        }
+        if let Some(top_k) = parameters.top_k {
+            stages.push(SamplerStage::TopK(top_k));
+        }
+        if let Some(tail_free) = parameters.tail_free {
+            stages.push(SamplerStage::TailFree(tail_free));
+        }
+        if let Some(typical) = parameters.typical {
+            stages.push(SamplerStage::Typical(typical));
+        }
+        if let Some(top_p) = parameters.top_p {
+            stages.push(SamplerStage::TopP(top_p));
+        }
+        if let Some(min_p) = parameters.min_p {
+            stages.push(SamplerStage::MinP(min_p));
+        }
+        match parameters.algorithm {
+            Algorithm::SoftMax { min_keep } => Self::new_softmax(stages, min_keep),
+            Algorithm::Greedy => Self::new_greedy(),
+            Algorithm::Mirostat { min_keep, tau, eta, m } => Self::new_mirostat(stages, min_keep, tau, eta, m),
+            Algorithm::MirostatV2 { min_keep, tau, eta } => Self::new_mirostat_v2(stages, min_keep, tau, eta),
         }
     }
 }

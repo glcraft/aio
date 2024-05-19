@@ -76,7 +76,8 @@ pub async fn run(
         .map_err(|_| Error::Custom("Failed to advance context".into()))?;
 
     let completion = session
-        .start_completing_with(StandardSampler::default(), prompt.parameters.max_tokens.unwrap_or(1024) as _);
+        .start_completing_with(StandardSampler::default(), prompt.parameters.max_tokens.unwrap_or(1024) as _)
+        .map_err(|e| Error::Custom(format!("Failed to start completion: {e}").into()))?;
     if log::log_enabled!(log::Level::Trace) {
         let completion_stream = StreamExt::map(completion,  |token| Ok(format!("{}({})", model.token_to_piece(token), token.0)));
         Ok(Box::pin(completion_stream))
