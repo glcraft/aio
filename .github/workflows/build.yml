@@ -69,6 +69,7 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "17.0"
+          arch: ${{ matrix.system == 'apple-darwin' && 'arm64' || 'x64' }}
       - name: Restore cache
         uses: Swatinem/rust-cache@v2
         with:
