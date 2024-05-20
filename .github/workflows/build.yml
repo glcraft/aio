@@ -78,7 +78,7 @@ jobs:
       - name: Install LLVM 17 on MacOS
         if: matrix.system.name == 'apple-darwin'
         run: >
-          wget -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-arm64-apple-darwin22.0.tar.xz;
+          wget -q -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-arm64-apple-darwin22.0.tar.xz;
           tar -xf llvm17.tar.xz;
           rm llvm17.tar.xz;
           sudo mv clang+llvm-17.0.6-arm64-apple-darwin22.0 /usr/local/llvm;
@@ -86,7 +86,7 @@ jobs:
         if: matrix.system.os == 'ubuntu-latest'
         run: >
           sudo apt install wget;
-          wget -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz;
+          wget -q -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz;
           tar -xf llvm17.tar.xz;
           rm llvm17.tar.xz;
           sudo mv clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04 /usr/local/llvm;
