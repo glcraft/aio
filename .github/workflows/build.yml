@@ -78,23 +78,23 @@ jobs:
       - name: Install LLVM 17 on MacOS
         if: matrix.system.name == 'apple-darwin'
         run: >
-          wget -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-arm64-apple-darwin22.0.tar.xz
-          tar -xf llvm17.tar.xz
-          rm llvm17.tar.xz
-          sudo mv clang%2Bllvm-17.0.6-arm64-apple-darwin22.0 /usr/local/llvm
+          wget -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-arm64-apple-darwin22.0.tar.xz;
+          tar -xf llvm17.tar.xz;
+          rm llvm17.tar.xz;
+          sudo mv clang%2Bllvm-17.0.6-arm64-apple-darwin22.0 /usr/local/llvm;
       - name: Install LLVM 17 on Linux
         if: matrix.system.os == 'ubuntu-latest'
         run: >
-          sudo apt install wget
-          wget -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz
-          tar -xf llvm17.tar.xz
-          rm llvm17.tar.xz
-          sudo mv clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04 /usr/local/llvm
+          sudo apt install wget;
+          wget -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz;
+          tar -xf llvm17.tar.xz;
+          rm llvm17.tar.xz;
+          sudo mv clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04 /usr/local/llvm;
       - name: Install LLVM 17 on Windows
         if: matrix.system.os == 'windows-latest'
         run: >
-          Invoke-WebRequest -Uri "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/LLVM-17.0.6-win64.exe" -OutFile ".\LLVM-17.0.6-win64.exe"
-          7z x -y "./LLVM-17.0.6-win64.exe" "-oC:/Program Files/LLVM"
+          Invoke-WebRequest -Uri "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/LLVM-17.0.6-win64.exe" -OutFile ".\LLVM-17.0.6-win64.exe";
+          7z x -y "./LLVM-17.0.6-win64.exe" "-oC:/Program Files/LLVM";
       - name: Restore cache
         uses: Swatinem/rust-cache@v2
         with:
