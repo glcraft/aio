@@ -31,9 +31,9 @@ jobs:
           # - cuda
           # - vulkan
         exclude:
-          - system: apple-darwin
+          - system: {name: apple-darwin}
             arch: x86_64
-          - system: apple-darwin
+          - system: {name: apple-darwin}
             gpu: cuda
           - gpu: cuda
             arch: aarch64
@@ -64,7 +64,7 @@ jobs:
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "17.0"
-          arch: ${{ matrix.system == 'apple-darwin' && 'arm64' || 'x64' }}
+          arch: ${{ matrix.system.name == 'apple-darwin' && 'arm64' || 'x64' }}
       - name: Restore cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -76,13 +76,13 @@ jobs:
         if: matrix.system.os == 'ubuntu-latest'
         run: sudo apt install -y libssl-dev pkg-config ${{ matrix.gpu == 'vulkan' && 'libvulkan-dev' || '' }}
       - name: Install gcc environnement for musl
-        if: matrix.system == 'unknown-linux-musl'
+        if: matrix.system.name == 'unknown-linux-musl'
         run:
           wget -nv http://more.musl.cc/x86_64-linux-musl/${{ matrix.arch }}-linux-musl-cross.tgz;
           tar -xf ${{ matrix.arch }}-linux-musl-cross.tgz;
           echo "PATH=$PWD/${{ matrix.arch }}-linux-musl-cross/bin:$PATH" >> $GITHUB_ENV;
       - name: Install gcc environnement for aarch64 gnu
-        if: matrix.system == 'unknown-linux-gnu' && matrix.arch == 'aarch64'
+        if: matrix.system.name == 'unknown-linux-gnu' && matrix.arch == 'aarch64'
         run: sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Build
         uses: actions-rs/cargo@v1
