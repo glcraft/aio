@@ -74,9 +74,12 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.arch }}-${{ matrix.system }}
-      - name: Setup ssl for linux via apt
+      - name: Apt update+upgrade
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt update && sudo apt upgrade -y && sudo apt install -y libssl-dev pkg-config
+        run: sudo apt update && sudo apt upgrade -y
+      - name: apt get dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt install -y libssl-dev pkg-config ${{ matrix.gpu == 'vulkan' && 'libvulkan-dev' }}
       - name: Install gcc environnement for musl
         if: matrix.system == 'unknown-linux-musl'
         run:
