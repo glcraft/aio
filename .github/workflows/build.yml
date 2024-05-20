@@ -60,15 +60,6 @@ jobs:
           non-cuda-sub-packages: '["libcublas", "libcublas-dev"]'
           use-local-cache: false
           use-github-cache: false
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "17.0"
-          arch: ${{ matrix.system.name == 'apple-darwin' && 'arm64' || 'x64' }}
-      - name: Restore cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.arch }}-${{ matrix.system.name }}
       - name: Apt update+upgrade
         if: matrix.system.os == 'ubuntu-latest'
         run: sudo apt update && sudo apt upgrade -y
@@ -84,6 +75,31 @@ jobs:
       - name: Install gcc environnement for aarch64 gnu
         if: matrix.system.name == 'unknown-linux-gnu' && matrix.arch == 'aarch64'
         run: sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+      - name: Install LLVM 17 on MacOS
+        if: matrix.system.name == 'apple-darwin'
+        run: >
+          wget -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-arm64-apple-darwin22.0.tar.xz
+          tar -xf llvm17.tar.xz
+          rm llvm17.tar.xz
+          sudo mv clang%2Bllvm-17.0.6-arm64-apple-darwin22.0 /usr/local/llvm
+      - name: Install LLVM 17 on Linux
+        if: matrix.system.os == 'ubuntu-latest'
+        run: >
+          sudo apt install wget
+          wget -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz
+          tar -xf llvm17.tar.xz
+          rm llvm17.tar.xz
+          sudo mv clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04 /usr/local/llvm
+      - name: Install LLVM 17 on Windows
+        if: matrix.system.os == 'windows-latest'
+        run: >
+          Invoke-WebRequest -Uri "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/LLVM-17.0.6-win64.exe" -OutFile ".\LLVM-17.0.6-win64.exe"
+          7z x -y "./LLVM-17.0.6-win64.exe" "-oC:/Program Files/LLVM"
+      - name: Restore cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.arch }}-${{ matrix.system.name }}
+      
       - name: Build
         uses: actions-rs/cargo@v1
         env:
