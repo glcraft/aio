@@ -81,7 +81,7 @@ jobs:
           wget -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-arm64-apple-darwin22.0.tar.xz;
           tar -xf llvm17.tar.xz;
           rm llvm17.tar.xz;
-          sudo mv clang%2Bllvm-17.0.6-arm64-apple-darwin22.0 /usr/local/llvm;
+          sudo mv clang+llvm-17.0.6-arm64-apple-darwin22.0 /usr/local/llvm;
       - name: Install LLVM 17 on Linux
         if: matrix.system.os == 'ubuntu-latest'
         run: >
