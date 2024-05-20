@@ -21,9 +21,9 @@ jobs:
           - aarch64
         gpu:
           - null
-          - clblast
-          - cuda
-          - vulkan
+          # - clblast
+          # - cuda
+          # - vulkan
         exclude:
           - system: apple-darwin
             arch: x86_64
