@@ -12,10 +12,16 @@ jobs:
       fail-fast: false
       matrix:
         system:
-          - unknown-linux-gnu
-          - unknown-linux-musl
-          - pc-windows-msvc
-          - apple-darwin
+          - name: unknown-linux-gnu
+            os: ubuntu-latest
+          - name: unknown-linux-musl
+            os: ubuntu-latest
+            toolchain: nightly
+          - name: apple-darwin
+            os: macos-latest
+          - name: pc-windows-msvc
+            os: windows-latest
+            ext: .exe
         arch:
           - x86_64
           - aarch64
@@ -31,30 +37,18 @@ jobs:
             gpu: cuda
           - gpu: cuda
             arch: aarch64
-        include: 
-          - system: apple-darwin
-            os: macos-latest
-          - system: apple-darwin
-            arch: aarch64
-            os: macos-latest
-            gpu: metal
-          - system: unknown-linux-gnu
-            os: ubuntu-latest
-          - system: unknown-linux-musl
-            os: ubuntu-latest
-            toolchain: nightly
-          - system: pc-windows-msvc
-            os: windows-latest
-            ext: .exe
-    runs-on: ${{ matrix.os }}
+        # include: 
+          # - system: apple-darwin
+          #   gpu: metal
+    runs-on: ${{ matrix.system.os }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Rust
         id: rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.toolchain || 'stable' }}
-          target: ${{ matrix.arch }}-${{ matrix.system }}
+          toolchain: ${{ matrix.system.toolchain || 'stable' }}
+          target: ${{ matrix.arch }}-${{ matrix.system.name }}
           profile: minimal
           override: true
       - name: Install CUDA
@@ -74,12 +68,12 @@ jobs:
       - name: Restore cache
         uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.arch }}-${{ matrix.system }}
+          key: ${{ matrix.arch }}-${{ matrix.system.name }}
       - name: Apt update+upgrade
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.system.os == 'ubuntu-latest'
         run: sudo apt update && sudo apt upgrade -y
       - name: apt get dependencies
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.system.os == 'ubuntu-latest'
         run: sudo apt install -y libssl-dev pkg-config ${{ matrix.gpu == 'vulkan' && 'libvulkan-dev' || '' }}
       - name: Install gcc environnement for musl
         if: matrix.system == 'unknown-linux-musl'
@@ -100,17 +94,17 @@ jobs:
           CFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
           CXXFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
         with:
-          toolchain: ${{ matrix.toolchain || 'stable' }}
+          toolchain: ${{ matrix.system.toolchain || 'stable' }}
           command: build
-          args: --release ${{ matrix.gpu && format('--features=llama_cpp/{0}', matrix.gpu) || '' }} --target "${{ matrix.arch }}-${{ matrix.system }}"
+          args: --release ${{ matrix.gpu && format('--features=llama_cpp/{0}', matrix.gpu) || '' }} --target "${{ matrix.arch }}-${{ matrix.system.name }}"
           use-cross: false
       - name: Rename Build
-        run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/aio${{ matrix.ext }} target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.gpu && format('-{0}', matrix.gpu) || '' }}${{ matrix.ext }}
+        run: mv target/${{ matrix.arch }}-${{ matrix.system.name }}/release/aio${{ matrix.system.ext || '' }} target/${{ matrix.arch }}-${{ matrix.system.name }}/release/aio-${{ matrix.arch }}-${{ matrix.system.name }}${{ matrix.gpu && format('-{0}', matrix.gpu) || '' }}${{ matrix.system.ext || '' }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
-          name: aio-${{ matrix.arch }}-${{ matrix.system }}
-          path: target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.gpu && format('-{0}', matrix.gpu) || '' }}${{ matrix.ext }}
+          name: aio-${{ matrix.arch }}-${{ matrix.system.name }}
+          path: target/${{ matrix.arch }}-${{ matrix.system.name }}/release/aio-${{ matrix.arch }}-${{ matrix.system.name }}${{ matrix.gpu && format('-{0}', matrix.gpu) || '' }}${{ matrix.system.ext || '' }}
 
   release:
     needs: build
