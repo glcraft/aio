@@ -35,6 +35,7 @@ jobs:
           - system: apple-darwin
             os: macos-latest
           - system: apple-darwin
+            arch: aarch64
             os: macos-latest
             gpu: metal
           - system: unknown-linux-gnu
@@ -79,7 +80,7 @@ jobs:
         run: sudo apt update && sudo apt upgrade -y
       - name: apt get dependencies
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt install -y libssl-dev pkg-config ${{ matrix.gpu == 'vulkan' && 'libvulkan-dev' }}
+        run: sudo apt install -y libssl-dev pkg-config ${{ matrix.gpu == 'vulkan' && 'libvulkan-dev' || '' }}
       - name: Install gcc environnement for musl
         if: matrix.system == 'unknown-linux-musl'
         run:
