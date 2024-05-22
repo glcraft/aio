@@ -73,7 +73,7 @@ jobs:
           tar -xf ${{ matrix.arch }}-linux-musl-cross.tgz;
           echo "PATH=$PWD/${{ matrix.arch }}-linux-musl-cross/bin:$PATH" >> $GITHUB_ENV;
       - name: Install gcc environnement for aarch64 gnu
-        if: matrix.system.name == 'unknown-linux-gnu' && matrix.arch == 'aarch64'
+        if: matrix.system.os == 'ubuntu-latest' && matrix.arch == 'aarch64'
         run: sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
       - name: Install LLVM 17 on MacOS
         if: matrix.system.name == 'apple-darwin'
