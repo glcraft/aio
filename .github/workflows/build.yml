@@ -109,6 +109,7 @@ jobs:
           CXX_aarch64-unknown-linux-musl: aarch64-linux-musl-g++
           CC_aarch64-unknown-linux-gnu: aarch64-linux-gnu-gcc
           CXX_aarch64-unknown-linux-gnu: aarch64-linux-gnu-g++
+          LDFLAGS: ${{ matrix.arch == 'aarch64' && '-L /usr/aarch64-linux-gnu/lib' || '' }}
           CFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
           CXXFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
         with:
