@@ -72,6 +72,11 @@ jobs:
           wget -nv http://more.musl.cc/x86_64-linux-musl/${{ matrix.arch }}-linux-musl-cross.tgz;
           tar -xf ${{ matrix.arch }}-linux-musl-cross.tgz;
           echo "PATH=$PWD/${{ matrix.arch }}-linux-musl-cross/bin:$PATH" >> $GITHUB_ENV;
+          echo "MUSL_ROOT=$PWD/${{ matrix.arch }}-linux-musl-cross/${{ matrix.arch }}-linux-musl" >> $GITHUB_ENV;
+          echo "LIBRARY_PATH=$PWD/${{ matrix.arch }}-linux-musl-cross/${{ matrix.arch }}-linux-musl/lib" >> $GITHUB_ENV;
+          echo "CPATH=$PWD/${{ matrix.arch }}-linux-musl-cross/${{ matrix.arch }}-linux-musl/include" >> $GITHUB_ENV;
+          echo "CC_${{ matrix.arch }}-unknown-linux-musl=${{ matrix.arch }}-linux-musl-gcc" >> $GITHUB_ENV;
+          echo "CXX_${{ matrix.arch }}-unknown-linux-musl=${{ matrix.arch }}-linux-musl-g++" >> $GITHUB_ENV;
       - name: Install gcc environnement for aarch64 gnu
         if: matrix.system.os == 'ubuntu-latest' && matrix.arch == 'aarch64'
         run: sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
@@ -103,13 +108,15 @@ jobs:
       - name: Build
         uses: actions-rs/cargo@v1
         env:
-          CC_x86_64-unknown-linux-musl: x86_64-linux-musl-gcc
-          CXX_x86_64-unknown-linux-musl: x86_64-linux-musl-g++
-          CC_aarch64-unknown-linux-musl: aarch64-linux-musl-gcc
-          CXX_aarch64-unknown-linux-musl: aarch64-linux-musl-g++
           CC_aarch64-unknown-linux-gnu: aarch64-linux-gnu-gcc
           CXX_aarch64-unknown-linux-gnu: aarch64-linux-gnu-g++
-          LDFLAGS: ${{ matrix.arch == 'aarch64' && '-L /usr/aarch64-linux-gnu/lib' || '' }}
+          # CC_x86_64-unknown-linux-musl: x86_64-linux-musl-gcc
+          # CXX_x86_64-unknown-linux-musl: x86_64-linux-musl-g++
+          # CC_aarch64-unknown-linux-musl: aarch64-linux-musl-gcc
+          # CXX_aarch64-unknown-linux-musl: aarch64-linux-musl-g++
+          # LIBRARY_PATH: ${{ env.MUSL_ROOT }}/lib
+          # CPATH: ${{ env.MUSL_ROOT }}/include
+          # PATH: ${{ env.MUSL_ROOT }}/bin:$PATH
           CFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
           CXXFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
         with:
