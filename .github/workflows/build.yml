@@ -71,7 +71,7 @@ jobs:
         run:
           wget -nv http://more.musl.cc/x86_64-linux-musl/${{ matrix.arch }}-linux-musl-cross.tgz;
           tar -xf ${{ matrix.arch }}-linux-musl-cross.tgz;
-          MUSL_PATH="$(readlink -f $PWD/aarch64-linux-musl-cross)";
+          MUSL_PATH="$(readlink -f $PWD/${{ matrix.arch }}-linux-musl-cross)";
           echo "PATH=$MUSL_PATH/bin:$PATH" >> $GITHUB_ENV;
           echo "MUSL_ROOT=$MUSL_PATH/${{ matrix.arch }}-linux-musl" >> $GITHUB_ENV;
           echo "CC_${{ matrix.arch }}-unknown-linux-musl=${{ matrix.arch }}-linux-musl-gcc" >> $GITHUB_ENV;
