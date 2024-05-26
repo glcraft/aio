@@ -27,9 +27,9 @@ jobs:
           - aarch64
         gpu:
           - null
-          # - clblast
-          # - cuda
-          # - vulkan
+          - clblast
+          - cuda
+          - vulkan
         exclude:
           - system: {name: apple-darwin}
             arch: x86_64
@@ -37,9 +37,11 @@ jobs:
             gpu: cuda
           - gpu: cuda
             arch: aarch64
-        # include: 
-          # - system: apple-darwin
-          #   gpu: metal
+        include: 
+          - system:
+              name: apple-darwin
+              os: macos-latest
+            gpu: metal
     runs-on: ${{ matrix.system.os }}
     steps:
       - uses: actions/checkout@v3
