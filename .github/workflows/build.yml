@@ -71,10 +71,9 @@ jobs:
         run:
           wget -nv http://more.musl.cc/x86_64-linux-musl/${{ matrix.arch }}-linux-musl-cross.tgz;
           tar -xf ${{ matrix.arch }}-linux-musl-cross.tgz;
-          echo "PATH=$PWD/${{ matrix.arch }}-linux-musl-cross/bin:$PATH" >> $GITHUB_ENV;
-          echo "MUSL_ROOT=$PWD/${{ matrix.arch }}-linux-musl-cross/${{ matrix.arch }}-linux-musl" >> $GITHUB_ENV;
-          echo "LIBRARY_PATH=$PWD/${{ matrix.arch }}-linux-musl-cross/${{ matrix.arch }}-linux-musl/lib" >> $GITHUB_ENV;
-          echo "CPATH=$PWD/${{ matrix.arch }}-linux-musl-cross/${{ matrix.arch }}-linux-musl/include" >> $GITHUB_ENV;
+          MUSL_PATH="$(readlink -f $PWD/aarch64-linux-musl-cross)";
+          echo "PATH=$MUSL_PATH/bin:$PATH" >> $GITHUB_ENV;
+          echo "MUSL_ROOT=$MUSL_PATH/${{ matrix.arch }}-linux-musl" >> $GITHUB_ENV;
           echo "CC_${{ matrix.arch }}-unknown-linux-musl=${{ matrix.arch }}-linux-musl-gcc" >> $GITHUB_ENV;
           echo "CXX_${{ matrix.arch }}-unknown-linux-musl=${{ matrix.arch }}-linux-musl-g++" >> $GITHUB_ENV;
       - name: Install gcc environnement for aarch64 gnu
