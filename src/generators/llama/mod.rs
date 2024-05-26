@@ -17,14 +17,11 @@ use super::{Error, ResultRun};
 static LOCAL_LLAMA: OnceCell<LlamaModel> = OnceCell::new();
 
 fn init_model(config: &config::Model) -> Result<(), Error> {
-    let model_options = LlamaParams {
-        n_gpu_layers: 20000,
-        ..Default::default()
-    };
     info!("Loading LLaMA model at {}", config.path);
+    debug!("Parameters: {:?}", config.parameters);
     let Ok(llama) = LlamaModel::load_from_file(
         &config.path,
-        model_options,
+        (&config.parameters).into(),
     ) else {
         return Err(Error::Custom("Failed to load LLaMA model".into()))
     };

@@ -39,8 +39,32 @@ impl Default for ModelParameters {
         }
     }
 }
+impl From<ModelParameters> for llama_cpp::LlamaParams {
+    fn from(x: ModelParameters) -> Self {
+        Self {
+            n_gpu_layers: x.n_gpu_layers,
+            split_mode: x.split_mode.into(),
+            main_gpu: x.main_gpu,
+            vocab_only: x.vocab_only,
+            use_mmap: x.use_mmap,
+            use_mlock: x.use_mlock,
+        }
+    }
+}
+impl From<&ModelParameters> for llama_cpp::LlamaParams {
+    fn from(x: &ModelParameters) -> Self {
+        Self {
+            n_gpu_layers: x.n_gpu_layers,
+            split_mode: x.split_mode.into(),
+            main_gpu: x.main_gpu,
+            vocab_only: x.vocab_only,
+            use_mmap: x.use_mmap,
+            use_mlock: x.use_mlock,
+        }
+    }
+}
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum SplitMode {
     None,
