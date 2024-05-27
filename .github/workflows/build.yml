@@ -41,6 +41,7 @@ jobs:
           - system:
               name: apple-darwin
               os: macos-latest
+            arch: aarch64
             gpu: metal
     runs-on: ${{ matrix.system.os }}
     steps:
