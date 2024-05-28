@@ -129,7 +129,7 @@ jobs:
           # CPATH: ${{ env.MUSL_ROOT }}/include
           # PATH: ${{ env.MUSL_ROOT }}/bin:$PATH
           CFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
-          CXXFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }} ${{ matrix.gpu && matrix.gpu == 'vulkan' && format('{0}VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1', matrix.os == 'windows-latest' && '/D' || '-D') || '' }}
+          CXXFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
         with:
           toolchain: ${{ matrix.system.toolchain || 'stable' }}
           command: build
