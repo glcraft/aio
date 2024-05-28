@@ -28,7 +28,7 @@ jobs:
         gpu:
           - null
           - clblast
-          - cuda
+          # - cuda
           - vulkan
         exclude:
           - system: {name: apple-darwin}
@@ -36,8 +36,6 @@ jobs:
           - system: {name: apple-darwin}
             gpu: cuda
           - gpu: cuda
-            arch: aarch64
-          - gpu: vulkan
             arch: aarch64
         include: 
           - system:
