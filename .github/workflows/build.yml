@@ -37,6 +37,10 @@ jobs:
             gpu: cuda
           - gpu: cuda
             arch: aarch64
+          - gpu: vulkan
+            arch: aarch64
+          - system: {name: unknown-linux-musl}
+            gpu: vulkan
         include: 
           - system:
               name: apple-darwin
