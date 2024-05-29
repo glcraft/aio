@@ -131,7 +131,7 @@ jobs:
           # CPATH: ${{ env.MUSL_ROOT }}/include
           # PATH: ${{ env.MUSL_ROOT }}/bin:$PATH
           CFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
-          CXXFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
+          CXXFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }} ${{ matrix.system.name == 'apple-darwin' && '-std=c++17' || '' }}
         with:
           toolchain: ${{ matrix.system.toolchain || 'stable' }}
           command: build
