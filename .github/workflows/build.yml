@@ -47,6 +47,11 @@ jobs:
               os: macos-latest
             arch: aarch64
             gpu: metal
+          - system:
+              name: apple-darwin
+              os: macos-latest
+            arch: aarch64
+            gpu: vulkan
     runs-on: ${{ matrix.system.os }}
     steps:
       - uses: actions/checkout@v3
