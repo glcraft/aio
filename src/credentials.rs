@@ -11,10 +11,16 @@ pub struct Credentials {
 impl DeserializeExt for Credentials {}
 
 impl Credentials {
-    pub fn get_api_key(&self, name: &str, env_var: Option<&str>) -> Option<String> {
-        self.apikey
-            .get(name)
-            .cloned()
-            .or_else(|| env_var.and_then(|v| std::env::var(v).ok()))
+    /// Get API key from environment variable or YAML file.
+    /// 
+    /// The environment variable name is formatted as `<NAME>_API_KEY`.
+    pub fn get_api_key(path: &str, name: &str) -> Option<String> {
+        let env_var_name = format!("{}_API_KEY", name.to_uppercase());
+        std::env::var(env_var_name)
+            .ok()
+            .or_else(|| Self::from_yaml_file(path)
+                .ok()
+                .and_then(|c| c.apikey.get(name).cloned())
+            )
     }
 }
