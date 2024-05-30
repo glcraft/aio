@@ -1,6 +1,7 @@
 pub mod config;
 pub mod credentials;
 
+use log::info;
 use serde::{Serialize, Deserialize};
 use tokio_stream::StreamExt;
 use crate::{
@@ -178,12 +179,13 @@ impl ChatResponse {
     }
 }
 
-pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::ApiArgs, input: &str) -> ResultRun {
-    let openai_api_key = creds.api_key;
-
-    if openai_api_key.is_empty() {
-        return Err(Error::Custom("OpenAI API key not found".into()));
-    }
+pub async fn run(api_key: Option<String>, config: crate::config::Config, args: args::ApiArgs, input: &str) -> ResultRun {
+    // if api_key.is_empty() {
+    //     return Err(Error::Custom("OpenAI API key not found".into()));
+    // }
+    let endpoint = config.endpoints
+        .get(&args.endpoint)
+        .ok_or(Error::Custom(format!("Endpoint {} not found", args.endpoint).into()))?;
 
     let prompt = if let Some(config_prompt) = args.prompt {
         config.prompts.0.into_iter()
@@ -201,11 +203,14 @@ pub async fn run(creds: credentials::Credentials, config: crate::config::Config,
         .into_stream();
 
     let client = reqwest::Client::new();
-    let stream = client.post("https://api.openai.com/v1/chat/completions")
+    let mut stream = client.post(format!("{}/chat/completions", endpoint))
         .header("User-Agent", aio_cargo_info::user_agent!())
-        .header("Authorization", format!("Bearer {}", openai_api_key))
-        .json(&chat_request)
-        .send()
+        .json(&chat_request);
+    if let Some(api_key) = api_key {
+        info!("API key found");
+        stream = stream.header("Authorization", format!("Bearer {}", api_key))
+    }
+    let stream = stream.send()
         .await?
         .bytes_stream();
 

@@ -90,7 +90,7 @@ async fn main() -> Result<(), String> {
 
     let mut stream = match app_args.engine {
         args::Subcommands::Api(args_engine) => generators::openai::run(
-            get_creds(&app_args.creds_path)?.openai,
+            credentials::Credentials::get_api_key(&app_args.creds_path, &args_engine.endpoint),
             config,
             args_engine,
             &app_args.input,
