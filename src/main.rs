@@ -15,6 +15,7 @@ mod openai {}
 use arguments as args;
 use clap::Parser;
 use formatters::Formatter;
+use log::{debug, info};
 use serde_io::DeserializeExt;
 use tokio_stream::StreamExt;
 
@@ -66,7 +67,7 @@ async fn main() -> Result<(), String> {
         simplelog::ColorChoice::Auto,
     )
     .unwrap();
-
+    debug!("Arguments: {:#?}", app_args);
     let config =
         config::Config::from_yaml_file(filesystem::resolve_path(&app_args.config_path).as_ref())
             .map(|mut c| {
@@ -81,7 +82,9 @@ async fn main() -> Result<(), String> {
                     e
                 )
             })?;
-
+    info!("Loaded config");
+    debug!("Config: {:#?}", config);
+    // std::process::exit(0);
     let mut formatter: Box<dyn Formatter> = match app_args.formatter {
         args::FormatterChoice::Markdown => Box::new(formatters::new_markdown_formatter()),
         args::FormatterChoice::Raw => Box::new(formatters::new_raw_formatter()),
