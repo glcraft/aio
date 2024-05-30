@@ -7,7 +7,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use prompt::Prompts as PromptsConfig;
-use crate::serde_io::DeserializeExt;
+use crate::{serde_io::DeserializeExt, utils::hashmap};
 #[cfg(feature = "local-llm")]
 use crate::generators::llama::config::Config as LlamaConfig;
 
@@ -16,6 +16,7 @@ pub struct Config {
     pub prompts: PromptsConfig,
     #[cfg(feature = "local-llm")]
     pub local: LlamaConfig,
+    pub endpoints: HashMap<String, String>,
 }
 
 impl DeserializeExt for Config {}

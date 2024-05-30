@@ -69,6 +69,12 @@ async fn main() -> Result<(), String> {
 
     let config =
         config::Config::from_yaml_file(filesystem::resolve_path(&app_args.config_path).as_ref())
+            .map(|mut c| {
+                if !c.endpoints.contains_key("openai") {
+                    c.endpoints.insert("openai".into(), "https://api.openai.com/v1".into());
+                }
+                c
+            })
             .map_err(|e| {
                 format!(
                     "An error occured while loading or creating configuration file: {}",
