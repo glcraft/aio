@@ -1,22 +1,26 @@
-use std::borrow::Cow;
+pub mod prompt;
+
+
+use std::{borrow::Cow, collections::HashMap};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    arguments as args, 
-    serde_io::DeserializeExt,
-    generators::openai::config::Config as ConfigOpenAI
-};
+use prompt::Prompts as PromptsConfig;
+use crate::serde_io::DeserializeExt;
+#[cfg(feature = "local-llm")]
+use crate::generators::llama::config::Config as LlamaConfig;
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub openai: ConfigOpenAI
+    pub prompts: PromptsConfig,
+    #[cfg(feature = "local-llm")]
+    pub local: LlamaConfig,
 }
 
 impl DeserializeExt for Config {}
 
-pub fn format_content<'a>(content: &'a str, args: &args::ProcessedArgs) -> Cow<'a, str> {
+pub fn format_content<'a>(content: &'a str, args: &HashMap<String, String>) -> Cow<'a, str> {
     static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?P<prefix>\$\$?)(?P<name>\w+)").expect("Failed to compile regex"));
     RE.replace_all(content, |caps: &regex::Captures| {
         let prefix = &caps["prefix"];
@@ -24,10 +28,7 @@ pub fn format_content<'a>(content: &'a str, args: &args::ProcessedArgs) -> Cow<'
             return format!("${}", &caps["name"]);
         }
         let name = &caps["name"];
-        match name {
-            "input" => args.input.clone(),
-            _ => String::new(),
-        }
+        args.get(name).cloned().unwrap_or_default()
     })
 }
 

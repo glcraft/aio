@@ -4,51 +4,14 @@ pub mod credentials;
 use serde::{Serialize, Deserialize};
 use tokio_stream::StreamExt;
 use crate::{
-    args,
-    utils::{
-        SplitBytesFactory,
-        FlattenTrait
+    args, config::prompt::Stop, utils::{
+        hashmap, FlattenTrait, SplitBytesFactory
     }
 };
-use self::config::Prompt;
+use crate::config::prompt::{Prompt, Parameters as PromptParameters, Message, Role};
 
 use super::{ResultRun, Error};
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Role {
-    User,
-    Assistant,
-    System
-}
-
-impl std::fmt::Display for Role {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Role::User => write!(f, "User"),
-            Role::Assistant => write!(f, "Assistant"),
-            Role::System => write!(f, "System"),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Message {
-    pub role: Role,
-    pub content: String,
-}
-
-#[allow(dead_code)]
-impl Message {
-    pub fn format_content(mut self, args: &crate::args::ProcessedArgs) -> Self {
-        self.content = crate::config::format_content(&self.content, args).to_string();
-        self
-    }
-    pub fn format_content_as_ref(&mut self, args: &crate::args::ProcessedArgs) -> &mut Self {
-        self.content = crate::config::format_content(&self.content, args).to_string();
-        self
-    }
-}
 #[derive(Debug, Default, Serialize)]
 pub struct ChatRequestParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -62,8 +25,6 @@ pub struct ChatRequestParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub frequency_penalty: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub best_of: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub n: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stream: Option<bool>,
@@ -71,8 +32,23 @@ pub struct ChatRequestParameters {
     pub logprobs: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub echo: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stop: Option<String>,
+    #[serde(skip_serializing_if = "Stop::is_none")]
+    pub stop: Stop,
+}
+
+impl From<PromptParameters> for ChatRequestParameters {
+    fn from(parameters: PromptParameters) -> Self {
+        Self {
+            max_tokens: parameters.max_tokens,
+            temperature: parameters.temperature,
+            top_p: parameters.top_p,
+            presence_penalty: parameters.presence_penalty,
+            frequency_penalty: parameters.frequency_penalty,
+            n: parameters.n,
+            stop: parameters.stop,
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -91,11 +67,11 @@ impl ChatRequest {
         }
     }
     pub fn add_message(mut self, role: Role, content: String) -> Self {
-        self.messages.push(Message { role, content });
+        self.messages.push(Message { role, content: Some(content) });
         self
     }
     pub fn add_messages(mut self, messages: Vec<Message>) -> Self {
-        self.messages.extend(messages);
+        self.messages.extend(messages.into_iter().filter(|m| m.content.is_some()));
         self
     }
     pub fn set_parameters(mut self, parameters: ChatRequestParameters) -> Self {
@@ -202,25 +178,24 @@ impl ChatResponse {
     }
 }
 
-pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::ProcessedArgs) -> ResultRun {
+pub async fn run(creds: credentials::Credentials, config: crate::config::Config, args: args::ApiArgs, input: &str) -> ResultRun {
     let openai_api_key = creds.api_key;
 
     if openai_api_key.is_empty() {
         return Err(Error::Custom("OpenAI API key not found".into()));
     }
-    let config_prompt = args.engine.find(':').map(|i| &args.engine[i+1..]);
 
-    let prompt = if let Some(config_prompt) = config_prompt {
-        config.openai.prompts.into_iter()
+    let prompt = if let Some(config_prompt) = args.prompt {
+        config.prompts.0.into_iter()
             .find(|prompt| prompt.name == config_prompt)
             .ok_or(Error::Custom("Prompt not found".into()))?
-            .format_contents(&args)
+            .format_contents(&hashmap!(input => input))
     } else {
-        Prompt::from_input(&args.input)
+        Prompt::from_input(input)
     };
 
     // Send a request
-    let chat_request = ChatRequest::new(prompt.model.unwrap_or_else(|| "gpt-3.5-turbo".into()))
+    let chat_request = ChatRequest::new(args.model)
         .add_messages(prompt.messages)
         .set_parameters(prompt.parameters.into())
         .into_stream();

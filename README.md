@@ -1,10 +1,14 @@
 # aio - Streamlined AI Terminal Interactions
 
-Welcome to the README for the `aio` command line tool – your gateway to seamless communication with AI engines via the terminal. This tool streamlines interactions with AI APIs, including the OpenAI API, and conveniently formats the results using integrated markdown formatting. Whether you're seeking information, generating content, or experimenting with AI, `aio` has you covered.
+Welcome to the README for the `aio` command line tool – your gateway to seamless communication with AI engines via the terminal. This tool streamlines interactions with AI APIs, including the OpenAI API, and conveniently formats the results using integrated Markdown formatting. Whether you're seeking information, generating content, or experimenting with AI, `aio` has you covered.
 
 <p align="center">
   <img src="./docs/prez.gif" style="border-radius: 10px;"/>
 </p>
+
+## 0.9 BREAKING CHANGES
+
+`aio` command line argument changed to be more ergonomic. See [the Argument manifest](./docs/ARGS.md) for more information about the new interface.
 
 ## 0.8 BREAKING CHANGES
 
@@ -13,13 +17,14 @@ The default credentials path has changed from `~/.config/aio/creds.yml` to `~/.c
 ## Table of Contents
 
 - [aio - Streamlined AI Terminal Interactions](#aio---streamlined-ai-terminal-interactions)
+  - [0.9 BREAKING CHANGES](#09-breaking-changes)
   - [0.8 BREAKING CHANGES](#08-breaking-changes)
   - [Table of Contents](#table-of-contents)
   - [NEW : Run code from code blocks](#new--run-code-from-code-blocks)
   - [Introduction](#introduction)
   - [Installation](#installation)
   - [Install from crates.io](#install-from-cratesio)
-    - [Install from Github releases](#install-from-github-releases)
+    - [Install from GitHub releases](#install-from-github-releases)
     - [Install from source](#install-from-source)
   - [Usage](#usage)
   - [Arguments](#arguments)
@@ -53,11 +58,11 @@ cargo install aio-cli
 
 The program will be installed to your `~/.cargo/bin` directory.
 
-### Install from Github releases
+### Install from GitHub releases
 
 To install `aio`, follow these steps:
 
-1. Download the [latest release](https://github.com/glcraft/aio/releases/latest) based on you operating system and architecture.
+1. Download the [latest release](https://github.com/glcraft/aio/releases/latest) based on your operating system and architecture.
 
 2. Extract the downloaded archive.
 
@@ -112,10 +117,10 @@ The `aio` command line tool supports the following arguments:
   - `from-file`: Read prompts from a file. Useful to debug or test a file.
 
 - `-f|--formatter <FORMATTER>`: Formatter to use. Possible FORMATTERs: 
-  - `markdown`: Parse the text response as markdown and format it in the console.
+  - `markdown`: Parse the text response as Markdown and format it in the console.
   - `raw`: Doesn't parse the response text. Just displays the raw text response.
   
-  By default the formatter is set to `markdown` if in terminal/tty, otherwise `raw`.
+  By default, the formatter is set to `markdown` if in terminal/tty, otherwise `raw`.
 
 - `-r|--run <METHOD>`: Run code block if the language is supported. Possible METHODs:
   - `no`: Doesn't run anything.

@@ -7,73 +7,148 @@ on:
 
 jobs:
   build:
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     strategy:
       fail-fast: false
       matrix:
-        system: 
-          - unknown-linux-gnu
-          - unknown-linux-musl
-          - apple-darwin
-          - pc-windows-msvc
+        system:
+          - name: unknown-linux-gnu
+            os: ubuntu-latest
+          - name: unknown-linux-musl
+            os: ubuntu-latest
+            toolchain: nightly
+          - name: apple-darwin
+            os: macos-latest
+          - name: pc-windows-msvc
+            os: windows-latest
+            ext: .exe
         arch:
           - x86_64
           - aarch64
-        include:
-          - system: pc-windows-msvc
-            os: windows-latest
-            ext: .exe
-          - system: apple-darwin
-            os: macos-latest
-            ext:
-          - system: unknown-linux-gnu
-            os: ubuntu-latest
-            ext:
-          - system: unknown-linux-musl
-            os: ubuntu-latest
-            ext:
-            toolchain: nightly
-    runs-on: ${{ matrix.os }}
+        gpu:
+          - null
+          - clblast
+          # - cuda
+          - vulkan
+        exclude:
+          - system: {name: apple-darwin}
+            arch: x86_64
+          - system: {name: apple-darwin}
+            gpu: cuda
+          - gpu: cuda
+            arch: aarch64
+          - gpu: vulkan
+            arch: aarch64
+          - system: {name: unknown-linux-musl}
+            gpu: vulkan
+        include: 
+          - system:
+              name: apple-darwin
+              os: macos-latest
+            arch: aarch64
+            gpu: metal
+          - system:
+              name: apple-darwin
+              os: macos-latest
+            arch: aarch64
+            gpu: vulkan
+    runs-on: ${{ matrix.system.os }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Rust
         id: rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.toolchain || 'stable' }}
-          target: ${{ matrix.arch }}-${{ matrix.system }}
+          toolchain: ${{ matrix.system.toolchain || 'stable' }}
+          target: ${{ matrix.arch }}-${{ matrix.system.name }}
           profile: minimal
           override: true
-      - uses: Swatinem/rust-cache@v2
+      - name: Install CUDA
+        if: matrix.gpu == 'cuda'
+        uses: Jimver/cuda-toolkit@v0.2.15
         with:
-          key: ${{ matrix.arch }}-${{ matrix.system }}
-      - name: Setup ssl for linux via apt
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt install libssl-dev pkg-config
+          method: 'network'
+          sub-packages: '["nvcc"]'
+          non-cuda-sub-packages: '["libcublas", "libcublas-dev"]'
+          use-local-cache: false
+          use-github-cache: true
+      - name: Install Vulkan SDK
+        if: matrix.gpu == 'vulkan'
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: 1.3.204.0
+          vulkan-components: Vulkan-Loader
+          vulkan-use-cache: true
+      - name: Apt update+upgrade
+        if: matrix.system.os == 'ubuntu-latest'
+        run: sudo apt update && sudo apt upgrade -y
+      - name: apt get dependencies
+        if: matrix.system.os == 'ubuntu-latest'
+        run: sudo apt install -y libssl-dev pkg-config ${{ matrix.gpu == 'vulkan' && 'libvulkan-dev' || '' }}
       - name: Install gcc environnement for musl
-        if: matrix.system == 'unknown-linux-musl'
+        if: matrix.system.name == 'unknown-linux-musl'
         run:
           wget -nv http://more.musl.cc/x86_64-linux-musl/${{ matrix.arch }}-linux-musl-cross.tgz;
           tar -xf ${{ matrix.arch }}-linux-musl-cross.tgz;
-          echo "PATH=$PWD/${{ matrix.arch }}-linux-musl-cross/bin:$PATH" >> $GITHUB_ENV;
+          MUSL_PATH="$(readlink -f $PWD/${{ matrix.arch }}-linux-musl-cross)";
+          echo "PATH=$MUSL_PATH/bin:$PATH" >> $GITHUB_ENV;
+          echo "MUSL_ROOT=$MUSL_PATH/${{ matrix.arch }}-linux-musl" >> $GITHUB_ENV;
+          echo "CC_${{ matrix.arch }}-unknown-linux-musl=${{ matrix.arch }}-linux-musl-gcc" >> $GITHUB_ENV;
+          echo "CXX_${{ matrix.arch }}-unknown-linux-musl=${{ matrix.arch }}-linux-musl-g++" >> $GITHUB_ENV;
       - name: Install gcc environnement for aarch64 gnu
-        if: matrix.system == 'unknown-linux-gnu' && matrix.arch == 'aarch64'
-        run: sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+        if: matrix.system.os == 'ubuntu-latest' && matrix.arch == 'aarch64'
+        run: sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+      - name: Install LLVM 17 on MacOS
+        if: matrix.system.name == 'apple-darwin'
+        run: >
+          wget -q -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-arm64-apple-darwin22.0.tar.xz;
+          tar -xf llvm17.tar.xz;
+          rm llvm17.tar.xz;
+          sudo mv clang+llvm-17.0.6-arm64-apple-darwin22.0 /usr/local/llvm;
+      - name: Install LLVM 17 on Linux
+        if: matrix.system.os == 'ubuntu-latest'
+        run: >
+          sudo apt install wget;
+          wget -q -O llvm17.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04.tar.xz;
+          tar -xf llvm17.tar.xz;
+          rm llvm17.tar.xz;
+          sudo mv clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04 /usr/local/llvm;
+      - name: Install LLVM 17 on Windows
+        if: matrix.system.os == 'windows-latest'
+        run: >
+          Invoke-WebRequest -Uri "https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/LLVM-17.0.6-win64.exe" -OutFile ".\LLVM-17.0.6-win64.exe";
+          7z x -y "./LLVM-17.0.6-win64.exe" "-oC:/Program Files/LLVM";
+      - name: Restore cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.arch }}-${{ matrix.system.name }}
+      
       - name: Build
         uses: actions-rs/cargo@v1
         env:
-          CC_x86_64-unknown-linux-musl: x86_64-linux-musl-gcc
+          CC_aarch64-unknown-linux-gnu: aarch64-linux-gnu-gcc
+          CXX_aarch64-unknown-linux-gnu: aarch64-linux-gnu-g++
+          # CC_x86_64-unknown-linux-musl: x86_64-linux-musl-gcc
+          # CXX_x86_64-unknown-linux-musl: x86_64-linux-musl-g++
+          # CC_aarch64-unknown-linux-musl: aarch64-linux-musl-gcc
+          # CXX_aarch64-unknown-linux-musl: aarch64-linux-musl-g++
+          # LIBRARY_PATH: ${{ env.MUSL_ROOT }}/lib
+          # CPATH: ${{ env.MUSL_ROOT }}/include
+          # PATH: ${{ env.MUSL_ROOT }}/bin:$PATH
+          CFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }}
+          CXXFLAGS: ${{env.CUDA_PATH && format('-I {0}/include', env.CUDA_PATH) || '' }} ${{ matrix.system.name == 'apple-darwin' && '-std=c++17' || '' }}
         with:
-          toolchain: ${{ matrix.toolchain || 'stable' }}
+          toolchain: ${{ matrix.system.toolchain || 'stable' }}
           command: build
-          args: --release --target "${{ matrix.arch }}-${{ matrix.system }}"
+          args: --release ${{ matrix.gpu && format('--features=llama_cpp/{0}', matrix.gpu) || '' }} --target "${{ matrix.arch }}-${{ matrix.system.name }}"
           use-cross: false
       - name: Rename Build
-        run: mv target/${{ matrix.arch }}-${{ matrix.system }}/release/aio${{ matrix.ext }} target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.ext }}
+        run: mv target/${{ matrix.arch }}-${{ matrix.system.name }}/release/aio${{ matrix.system.ext || '' }} target/${{ matrix.arch }}-${{ matrix.system.name }}/release/aio-${{ matrix.arch }}-${{ matrix.system.name }}${{ matrix.gpu && format('-{0}', matrix.gpu) || '' }}${{ matrix.system.ext || '' }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
-          name: aio-${{ matrix.arch }}-${{ matrix.system }}
-          path: target/${{ matrix.arch }}-${{ matrix.system }}/release/aio-${{ matrix.arch }}-${{ matrix.system }}${{ matrix.ext }}
+          name: aio-${{ matrix.arch }}-${{ matrix.system.name }}${{ matrix.gpu && format('-{0}', matrix.gpu) || '' }}
+          path: target/${{ matrix.arch }}-${{ matrix.system.name }}/release/aio-${{ matrix.arch }}-${{ matrix.system.name }}${{ matrix.gpu && format('-{0}', matrix.gpu) || '' }}${{ matrix.system.ext || '' }}
 
   release:
     needs: build

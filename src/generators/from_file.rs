@@ -1,14 +1,37 @@
+use std::io::Cursor;
+
 use crate::args;
 use super::{ResultRun, ResultStream, Error};
+use tokio_util::io::ReaderStream;
 
-pub async fn run(_: crate::config::Config, args: args::ProcessedArgs) -> ResultRun {
+#[inline]
+fn err_into<E: std::error::Error>(e: E) -> Error {
+    Error::Custom(std::borrow::Cow::Owned(e.to_string()))
+}
+#[inline]
+fn res_into<T,E: std::error::Error>(r: Result<T, E>) -> Result<T, Error> {
+    r.map_err(err_into)
+}
+
+pub async fn run(_: crate::config::Config, args: args::FromContentArgs, input: &str) -> ResultRun {
     use tokio_stream::StreamExt;
-    let input = args.input;
-    let file = tokio::fs::File::open(&input).await.map_err(|e| Error::Custom(std::borrow::Cow::Owned(e.to_string())))?;
-
-    let stream = tokio_util::io::ReaderStream::new(file).map(|r| -> ResultStream {
-        let bytes = r.map_err(|e| Error::Custom(std::borrow::Cow::Owned(e.to_string())))?;
-        String::from_utf8(bytes.as_ref().to_vec()).map_err(|e| Error::Custom(std::borrow::Cow::Owned(e.to_string())))
-    });
-    Ok(Box::pin(stream))
+    if args.file {
+        let file = tokio::fs::File::open(&input).await.map_err(err_into)?;
+        let stream = ReaderStream::new(file).map(|r| -> ResultStream {
+            let bytes = res_into(r)?;
+            String::from_utf8(bytes.as_ref().to_vec()).map_err(err_into)
+        });
+        return Ok(Box::pin(stream));
+    } else {
+        let stream = ReaderStream::new(Cursor::new(String::from(input).into_bytes()))
+            .map(res_into)
+            .map(|r| 
+                r.and_then(|v| 
+                    res_into(std::str::from_utf8(v.as_ref())).map(String::from)
+                )
+                
+            );
+        return Ok(Box::pin(stream));
+        // todo!("Implement reading from stdin")
+    }
 }
