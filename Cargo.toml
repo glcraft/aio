@@ -9,7 +9,7 @@ license = "MIT"
 categories = ["command-line-utilities", "parsing"]
 repository = "https://github.com/glcraft/aio"
 homepage = "https://github.com/glcraft/aio"
-keywords = ["cli", "terminal", "ai", "llm", "openai", "markdown"]
+keywords = ["cli", "ai", "llm", "openai", "markdown"]
 
 [[bin]]
 name = "aio"
